@@ -1,4 +1,4 @@
-# mod-camps-twow / TurtleCamps
+# mod-twow-camps / TurtleCamps
 
 ![TurtleCamps Banner](docs/images/turtle_camps_banner.jpg)
 
@@ -24,11 +24,10 @@ A standalone decorative camp and GM world editor for the Tortoise Turtle 1.18.1 
 
 ## Installation and build integration
 Keep this repository standalone. Place a copy or directory junction at
-`<core>/modules/mod-camps-twow` (the src directory must be directly beneath it).
-The core discovers `Addmod_camps_twowScripts()` automatically; no custom module
-CMake file is needed. The provided workspace already has a junction.
+`<core>/modules/mod-twow-camps` (the `src/` directory must be directly beneath it).
+The core discovers `Addmod_twow_campsScripts()` automatically.
 
-Configure the selected build with `-DMODULE_MOD_CAMPS_TWOW=static`. Global MODULES
+Configure the selected build with `-DMODULE_MOD_TWOW_CAMPS=static`. Global MODULES
 may remain disabled so unrelated optional modules are not enabled. Preserve your
 existing PlayerBots settings. Then build `mangosd`, not just `modules`:
 
@@ -44,8 +43,8 @@ No installation/deployment or live SQL application was performed by this project
    maintenance window. They are deliberately outside the automatic updater path.
 2. Apply `data/sql/world/20260911_01_camps.sql` to the **world** database, manually
    or through the target updater's module allowlist. No auth/character migration.
-3. Put `conf/mod-camps-twow.conf.dist` beside the target's other module config files
-   as `mod-camps-twow.conf` without `.dist`, retaining `[ModuleConf]`.
+3. Put `conf/mod-twow-camps.conf.dist` beside the target's other module config files
+   as `mod-twow-camps.conf` without `.dist`, retaining `[ModuleConf]`.
 4. Set `Camps.Enable = 1`. Keep `Camps.Players = 0` for GM-only use. Set it to 1
    for personal camps after checking safe entries and location policy.
 
@@ -75,8 +74,9 @@ the list generated for enabled modules, and a missing module config can prevent
 normal startup. See the target modules README for its install conventions.
 
 ## Addon setup and workflows
-Copy `addon/TurtleCamps` to `<Turtle client>/Interface/AddOns/TurtleCamps`. Enable it
-on the character screen. Its TOC uses vanilla Interface 11200. `/tc` and
+Copy the folder `addon/TurtleCamps` directly into your client's AddOns directory:
+`<Turtle Client>/Interface/AddOns/TurtleCamps` (do not copy the root repository folder).
+Enable it on the character screen. Its TOC uses vanilla Interface 11200. `/tc` and
 `/turtlecamps` open the panel and negotiate protocol version 1.
 
 Normal player: choose Camp mode, stand on valid ground on map 0 or 1, Claim, search

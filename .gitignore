@@ -1,3 +1,14 @@
+# Workspace, agent, testing, and internal verification files (Local Only - Never Push to GitHub)
+AGENTS.md
+.agents/
+tests/
+t/
+test_*
+docs/
+!docs/images/
+!docs/images/**
+verify.ps1
+
 # Build artifacts and binaries
 build*/
 bin/
@@ -9,10 +20,12 @@ bin/
 *.lib
 *.a
 *.exp
+*.log
 
 # IDE and Editor files
 .vs/
 .vscode/
+.idea/
 *.user
 *.suo
 *.VC.db

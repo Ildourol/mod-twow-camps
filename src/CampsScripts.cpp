@@ -34,7 +34,14 @@ public:
     void OnMapChanged(Player* p) override { Camps::Manager::Get().QueueCleanup(p->GetGUIDLow()); }
 };
 }
-void Addmod_camps_twowScripts()
+
+void Addmod_twow_campsScripts()
 {
     new CampsCommands(); new CampsWorld(); new CampsPlayer();
+}
+
+// Backward-compatibility alias
+void Addmod_camps_twowScripts()
+{
+    Addmod_twow_campsScripts();
 }
