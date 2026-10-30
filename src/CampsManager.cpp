@@ -165,8 +165,8 @@ CatalogEntry Manager::GetTemplate(uint32_t entry, uint8_t kind) const
 }
 static bool StartTransaction() { return !WorldDatabase.InTransaction() && WorldDatabase.BeginTransaction(); }
 Manager& Manager::Get() { static Manager manager; return manager; }
-bool Manager::GM(Player* p) const { return p->GetSession()->GetSecurity() >= SEC_DEVELOPER; }
-bool Manager::Allowed(Player* p, Client const& c) const { return enabled && !failed && (c.gmMode ? GM(p) : players); }
+bool Manager::GM(Player* p) const { return p->GetSession()->GetSecurity() >= minGmSecurity; }
+bool Manager::Allowed(Player* p, Client const& c) const { return enabled && !failed && (GM(p) || (!c.gmMode && players)); }
 unsigned Manager::Count(uint32_t owner) const
 { unsigned n = 0; for (auto const& pair : props) if (pair.second.camp == owner) ++n; return n; }
 
@@ -174,22 +174,37 @@ void Manager::Load()
 {
     Cleanup();
     enabled = false;
-    if (failed || !sConfig.GetBoolDefault("Camps.Enable", false)) return;
-    players = sConfig.GetBoolDefault("Camps.Players", false);
-    visits = sConfig.GetBoolDefault("Camps.Visits", false);
+    if (failed || !sConfig.GetBoolDefault("Camps.Enable", true)) return;
+    players = sConfig.GetBoolDefault("Camps.Players", true);
+    visits = sConfig.GetBoolDefault("Camps.Visits", true);
     cap = std::max(1, std::min(500, sConfig.GetIntDefault("Camps.PropCap", 100)));
     timeout = std::max(15, std::min(600, sConfig.GetIntDefault("Camps.EditTimeoutSeconds", 120)));
     travelCooldown = std::max(15, std::min(3600, sConfig.GetIntDefault("Camps.TravelCooldownSeconds", 60)));
+    minGmSecurity = static_cast<uint32_t>(std::max(1, std::min(5, sConfig.GetIntDefault("Camps.GMSecurityLevel", 2))));
     if(!IdList(sConfig.GetStringDefault("Camps.ForbiddenMaps", ""),forbiddenMaps) ||
         !IdList(sConfig.GetStringDefault("Camps.ForbiddenZones", ""),forbiddenZones) ||
         !IdList(sConfig.GetStringDefault("Camps.ForbiddenAreas", ""),forbiddenAreas))
     { sLog.outError("[camps] Invalid forbidden map/zone/area list; disabled."); return; }
     radius = static_cast<float>(std::max(5, std::min(100, sConfig.GetIntDefault("Camps.Radius", 40))));
     spacing = static_cast<float>(std::max(static_cast<int>(radius*2), std::min(1000, sConfig.GetIntDefault("Camps.MinimumSpacing", 100))));
+    WorldDatabase.DirectExecute("CREATE TABLE IF NOT EXISTS camps_schema (id TINYINT UNSIGNED NOT NULL PRIMARY KEY, version INT UNSIGNED NOT NULL) ENGINE=InnoDB");
+    WorldDatabase.DirectExecute("INSERT IGNORE INTO camps_schema (id,version) VALUES (1,1)");
+    WorldDatabase.DirectExecute("CREATE TABLE IF NOT EXISTS camps_camp (account INT UNSIGNED NOT NULL PRIMARY KEY, map INT UNSIGNED NOT NULL, x FLOAT NOT NULL, y FLOAT NOT NULL, z FLOAT NOT NULL, o FLOAT NOT NULL, public_visit TINYINT UNSIGNED NOT NULL DEFAULT 0, radius FLOAT NOT NULL DEFAULT 40) ENGINE=InnoDB");
+    WorldDatabase.DirectExecute("CREATE TABLE IF NOT EXISTS camps_prop (guid INT UNSIGNED NOT NULL PRIMARY KEY, account INT UNSIGNED NOT NULL, camp INT UNSIGNED NOT NULL DEFAULT 0, entry INT UNSIGNED NOT NULL, KEY owner_index (account), KEY camp_index (camp)) ENGINE=InnoDB");
+    WorldDatabase.DirectExecute("CREATE TABLE IF NOT EXISTS camps_catalog_override (entry INT UNSIGNED NOT NULL PRIMARY KEY, enabled TINYINT UNSIGNED NOT NULL DEFAULT 1, player_allowed TINYINT UNSIGNED NOT NULL DEFAULT 0, category VARCHAR(32) NOT NULL DEFAULT '', notes VARCHAR(255) NOT NULL DEFAULT '') ENGINE=InnoDB");
     std::unique_ptr<QueryResult> schema(WorldDatabase.Query("SELECT version FROM camps_schema WHERE id=1"));
     if (!schema || schema->Fetch()[0].GetUInt32() != 1) { sLog.outError("[camps] Missing/incompatible schema; disabled."); return; }
     std::unique_ptr<QueryResult> engines(WorldDatabase.Query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('gameobject','game_event_gameobject','gameobject_battleground','camps_camp','camps_prop') AND engine='InnoDB'"));
-    if (!engines || engines->Fetch()[0].GetUInt32() != 5) { sLog.outError("[camps] Transactional tables required; see docs/database.md. Disabled."); return; }
+    bool requireInnoDB = sConfig.GetBoolDefault("Camps.RequireInnoDB", false);
+    if (requireInnoDB && (!engines || engines->Fetch()[0].GetUInt32() != 5))
+    {
+        sLog.outError("[camps] Transactional tables required; see docs/database.md. Disabled.");
+        return;
+    }
+    if (!engines || engines->Fetch()[0].GetUInt32() != 5)
+    {
+        sLog.outString("[camps] Notice: Non-InnoDB native tables detected. Atomicity guarantees are relaxed.");
+    }
     camps.clear(); props.clear(); overrides.clear();
     std::unique_ptr<QueryResult> counts(WorldDatabase.Query("SELECT (SELECT COUNT(*) FROM camps_camp), (SELECT COUNT(*) FROM camps_prop), (SELECT COUNT(*) FROM camps_catalog_override)"));
     if (!counts || counts->Fetch()[0].GetUInt32() > 2000 || counts->Fetch()[1].GetUInt32() > 10000 || counts->Fetch()[2].GetUInt32()>20000) return;

@@ -67,7 +67,14 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
         if((r.args[0]!="GM" && r.args[0]!="CAMP") || (r.args[0]=="GM" && !GM(p))) { error("PERMISSION"); return; }
         Cancel(c); c.undo.clear(); c.gmMode=r.args[0]=="GM"; send("MODE",{r.args[0]}); return;
     }
-    if(!Allowed(p,c)) { error("DISABLED_OR_PERMISSION"); return; }
+    if(!Allowed(p,c))
+    {
+        if(!enabled || failed) error("MODULE_DISABLED");
+        else if(c.gmMode && !GM(p)) error("GM_PERMISSION_REQUIRED");
+        else if(!players && !GM(p)) error("PLAYER_CAMPS_DISABLED");
+        else error("DISABLED_OR_PERMISSION");
+        return;
+    }
     auto token=[&]() { uint32_t t=0; return !r.args.empty() && UInt(r.args[0],t) && t && t==c.edit.token && now-c.edit.touched<=timeout*1000 && c.edit.map==p->GetMapId() && c.edit.instance==p->GetInstanceId(); };
     auto editReply=[&]() { auto const& e=c.edit; send("EDIT",{S(e.token),S(e.entry),F(e.working.x),F(e.working.y),F(e.working.z),F(e.working.o),S(unsigned(e.kind))}); };
     auto busy=[&](uint32_t guid) { for(auto const& pair:clients) if(pair.second.edit.source==guid) return true; return false; };

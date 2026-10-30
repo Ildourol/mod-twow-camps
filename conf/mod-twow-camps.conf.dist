@@ -1,13 +1,35 @@
 [ModuleConf]
-# Opt in after applying world migration and reviewing the catalogue.
-Camps.Enable = 0
-Camps.Players = 0
-Camps.Visits = 0
+# Turtle WoW Camps & World Builder Module Configuration
+# Master enable switch (1 = Enabled, 0 = Disabled)
+Camps.Enable = 1
+
+# Normal player personal camp building (1 = Enabled, 0 = GM-only)
+Camps.Players = 1
+
+# Public camp visiting / travel (1 = Enabled, 0 = Disabled)
+Camps.Visits = 1
+
+# Maximum placed props allowed per account camp (1-500)
 Camps.PropCap = 100
+
+# Personal camp boundary radius in yards (5-100)
 Camps.Radius = 40
+
+# Minimum spacing between personal camps in yards (must be >= 2*Radius, max 1000)
 Camps.MinimumSpacing = 100
+
+# Idle preview edit timeout in seconds (15-600)
 Camps.EditTimeoutSeconds = 120
+
+# Shared travel cooldown in seconds (15-3600)
 Camps.TravelCooldownSeconds = 60
+
+# Minimum security level for GM builder mode (1 = Observer, 2 = Moderator, 3 = Developer, 4 = Admin)
+Camps.GMSecurityLevel = 2
+
+# Require InnoDB on core association tables (1 = Strict disable if MyISAM, 0 = Allow with notice)
+Camps.RequireInnoDB = 0
+
 # Comma-separated native IDs, at most 64 per list; blank disables the blacklist.
 # Normal-player building already restricts maps to continents 0 and 1.
 Camps.ForbiddenMaps = ""

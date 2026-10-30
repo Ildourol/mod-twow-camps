@@ -1261,6 +1261,125 @@ frame:SetScript("OnMouseWheel", function()
     end
 end)
 
+-- Minimap Button with Random Icon
+local MINIMAP_RADIUS = 80
+local minimapIcons = {
+    "Interface\\Icons\\INV_Misc_Campfire",
+    "Interface\\Icons\\INV_Fabric_Tent_01",
+    "Interface\\Icons\\Ability_Hunter_Pet_Turtle",
+    "Interface\\Icons\\Spell_Fire_Fire",
+    "Interface\\Icons\\INV_Misc_Lantern_01",
+    "Interface\\Icons\\Spell_Nature_MoonGlow",
+    "Interface\\Icons\\Trade_Fishing",
+    "Interface\\Icons\\INV_Drink_05",
+    "Interface\\Icons\\INV_Misc_Beer_01",
+    "Interface\\Icons\\INV_Pick_02",
+    "Interface\\Icons\\INV_Axe_02",
+    "Interface\\Icons\\Spell_Nature_NatureTouchGrow"
+}
+
+local function InitMinimapButton()
+    if type(TurtleCampsDB.minimap) ~= "table" then
+        TurtleCampsDB.minimap = {}
+    end
+    local db = TurtleCampsDB.minimap
+    if not db.angle then
+        db.angle = 210
+    end
+    if not db.icon then
+        math.randomseed(GetTime() * 1000)
+        local rndIdx = math.random(table.getn(minimapIcons))
+        db.icon = minimapIcons[rndIdx]
+    end
+    if db.show == nil then
+        db.show = true
+    end
+
+    local btn = CreateFrame("Button", "TurtleCampsMinimapButton", Minimap)
+    btn:SetWidth(31); btn:SetHeight(31); btn:SetFrameStrata("MEDIUM"); btn:SetFrameLevel(8)
+    btn:EnableMouse(true); btn:SetMovable(true)
+    btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    btn:RegisterForDrag("LeftButton")
+
+    local icon = btn:CreateTexture(nil, "BACKGROUND")
+    icon:SetWidth(20); icon:SetHeight(20); icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    icon:SetTexture(db.icon)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    btn.icon = icon
+
+    local border = btn:CreateTexture(nil, "OVERLAY")
+    border:SetWidth(53); border:SetHeight(53); border:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+    border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+
+    local hl = btn:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+    hl:SetAllPoints(btn)
+    hl:SetBlendMode("ADD")
+
+    local function updatePos()
+        local ang = math.rad(db.angle or 210)
+        btn:ClearAllPoints()
+        btn:SetPoint("CENTER", Minimap, "CENTER", MINIMAP_RADIUS * math.cos(ang), MINIMAP_RADIUS * math.sin(ang))
+    end
+    updatePos()
+
+    local function randomizeIcon()
+        local cur = db.icon
+        local idx = math.random(table.getn(minimapIcons))
+        if minimapIcons[idx] == cur and table.getn(minimapIcons) > 1 then
+            idx = math.mod(idx, table.getn(minimapIcons)) + 1
+        end
+        db.icon = minimapIcons[idx]
+        btn.icon:SetTexture(db.icon)
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffd100TurtleCamps|r: Minimap icon randomized to |cff00ff00" .. db.icon .. "|r")
+    end
+
+    btn:SetScript("OnClick", function()
+        if arg1 == "RightButton" then
+            randomizeIcon()
+        else
+            TurtleCamps_Toggle()
+        end
+    end)
+
+    btn:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_LEFT")
+        GameTooltip:SetText("|cffffd100TURTLE|r|cffffffffCAMPS|r  |cff888888v0.3.0|r")
+        GameTooltip:AddLine("Left-Click: Toggle Camps Window (/tc)", 1, 1, 1)
+        GameTooltip:AddLine("Right-Click: Randomize Icon", 0.7, 0.7, 1)
+        GameTooltip:AddLine("Left-Drag: Move around Minimap", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end)
+    btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    btn:SetScript("OnDragStart", function()
+        this:SetScript("OnUpdate", function()
+            local mx, my = Minimap:GetCenter()
+            local px, py = GetCursorPosition()
+            local scale = Minimap:GetEffectiveScale()
+            px, py = px / scale, py / scale
+            local dx = px - mx
+            local dy = py - my
+            local ang = math.deg(math.atan2(dy, dx))
+            if ang < 0 then ang = ang + 360 end
+            db.angle = ang
+            updatePos()
+        end)
+    end)
+    btn:SetScript("OnDragStop", function()
+        this:SetScript("OnUpdate", nil)
+    end)
+
+    if db.show == false then
+        btn:Hide()
+    else
+        btn:Show()
+    end
+
+    TC.minimapBtn = btn
+    TC.RandomizeMinimapIcon = randomizeIcon
+end
+
 -- Event Dispatcher
 local events = CreateFrame("Frame")
 events:RegisterEvent("VARIABLES_LOADED")
@@ -1301,6 +1420,7 @@ events:SetScript("OnEvent", function()
             end
         end
         TurtleCampsDB.recent = clean
+        InitMinimapButton()
     elseif event == "PLAYER_ENTERING_WORLD" then
         TC.ready = false; TC.token = nil; TC.queue = {}; TC.pending = nil
         statusDot:SetText("|cffffaa00\226\151\143|r")
@@ -1503,7 +1623,15 @@ events:SetScript("OnEvent", function()
             connect(true)
         elseif op == "ERROR" then
             local errCode = f[4] or "ERROR"
-            message("Server: " .. errCode)
+            if errCode == "MODULE_DISABLED" or errCode == "DISABLED_OR_PERMISSION" then
+                message("|cffff3333Server: TurtleCamps is disabled. Set Camps.Enable = 1 in mod-twow-camps.conf|r")
+            elseif errCode == "PLAYER_CAMPS_DISABLED" then
+                message("|cffffaa00Server: Player camps are disabled. Set Camps.Players = 1 in mod-twow-camps.conf or use GM Mode.|r")
+            elseif errCode == "GM_PERMISSION_REQUIRED" or errCode == "PERMISSION" then
+                message("|cffffaa00Server: Staff permissions required (Security Level >= 2).|r")
+            else
+                message("Server: " .. errCode)
+            end
             if errCode == "HANDSHAKE_OR_REPLAY" then
                 TC.ready = false; TC.isConnecting = false
                 connect(true)
@@ -1626,6 +1754,26 @@ SlashCmdList["TURTLECAMPS"] = function(msg)
                 message("Usage: /tc spawn <entry_id> [object|creature|item]")
                 return
             end
+        end
+        if cmd == "icon" or cmd == "randomicon" then
+            if TC.RandomizeMinimapIcon then
+                TC.RandomizeMinimapIcon()
+            end
+            return
+        end
+        if cmd == "minimap" then
+            if TC.minimapBtn then
+                if TC.minimapBtn:IsShown() then
+                    TC.minimapBtn:Hide()
+                    TurtleCampsDB.minimap.show = false
+                    message("Minimap button hidden. Type /tc minimap to show.")
+                else
+                    TC.minimapBtn:Show()
+                    TurtleCampsDB.minimap.show = true
+                    message("Minimap button shown.")
+                end
+            end
+            return
         end
     end
     TurtleCamps_Toggle()

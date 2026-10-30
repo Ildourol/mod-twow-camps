@@ -7,6 +7,7 @@ A standalone decorative camp and GM world editor for the Tortoise Turtle 1.18.1 
 **Status:** Implementation compiles and `mangosd` links cleanly on Windows x64 Release. Full protocol tests (10,042 assertions + 10,000 fuzz checks) and static verification pass.
 
 ## Features
+- **Draggable Minimap Button**: Circular, draggable minimap button styled with native tracking borders and an initial randomized outdoor/camp icon. Left-click toggles the window, Right-click re-randomizes the icon, and Left-drag rotates smoothly around the minimap rim. Supports `/tc minimap` and `/tc icon`.
 - **Categorized Catalogue**: Dedicated browsing tabs for **Props**, **Buildings**, **Creatures & NPCs**, and placeable **Items / Ground Clutter**.
 - **Contextual Filter Chips**: Quick preset chips dynamically adapted per category (e.g., Tents, Seats, Fires, Storage, Nature; Houses, Towers, Pavilions; Humanoids, Beasts, Critters; Weapons, Armor, Food, Potions).
 - **Interactive 2D Portrait Cards**: Real-time icon inspection, category badge, and entity ID info card for any selected or edited object.
@@ -50,14 +51,16 @@ No installation/deployment or live SQL application was performed by this project
 
 | Key | Default | Meaning / enforced range |
 |---|---:|---|
-| Camps.Enable | 0 | Master enable |
-| Camps.Players | 0 | Normal-player camp building |
-| Camps.Visits | 0 | Travel to another public camp |
+| Camps.Enable | 1 | Master enable |
+| Camps.Players | 1 | Normal-player camp building |
+| Camps.Visits | 1 | Travel to another public camp |
 | Camps.PropCap | 100 | 1–500 props per personal camp |
 | Camps.Radius | 40 | 5–100 yards, three-dimensional prop boundary |
 | Camps.MinimumSpacing | 100 | At least twice radius, at most 1000; horizontal spacing |
 | Camps.EditTimeoutSeconds | 120 | 15–600 seconds idle edit timeout |
 | Camps.TravelCooldownSeconds | 60 | 15–3600 seconds, shared Go/Visit per active character |
+| Camps.GMSecurityLevel | 2 | Minimum security level for GM builder mode (1=Observer, 2=Mod, 3=Dev, 4=Admin) |
+| Camps.RequireInnoDB | 0 | Strict InnoDB engine requirement on native tables (1=Enforce, 0=Allow with notice) |
 | Camps.ForbiddenMaps | empty | Comma-separated native map IDs; ordinary camps already require 0/1 |
 | Camps.ForbiddenZones | empty | Comma-separated native zone IDs |
 | Camps.ForbiddenAreas | empty | Comma-separated native area IDs |

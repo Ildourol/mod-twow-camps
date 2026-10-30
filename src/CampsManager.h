@@ -50,7 +50,7 @@ public:
     bool SafeItem(uint32_t entry) const;
 private:
     bool enabled = false, players = false, visits = false, failed = false;
-    uint32_t cap = 100, timeout = 120, nextToken = 1, travelCooldown = 60;
+    uint32_t cap = 100, timeout = 120, nextToken = 1, travelCooldown = 60, minGmSecurity = 2;
     float radius = 40, spacing = 100;
     std::map<uint32_t, Camp> camps;
     std::map<uint32_t, Prop> props;
