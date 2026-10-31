@@ -214,7 +214,7 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
             if(!c.gmMode && !Safe(targetEntry, uint8_t(kindVal))) { error("OBJECT_UNSAFE"); return; }
             CatalogEntry cat = GetTemplate(targetEntry, uint8_t(kindVal));
             if(!c.gmMode && !cat.player) { error("OBJECT_GM_ONLY"); return; }
-            Transform testPos = Position(p);
+            Transform testPos{p->GetPositionX(), p->GetPositionY(), p->GetPositionZ(), p->GetOrientation()};
             testPos.x += 3 * std::cos(testPos.o); testPos.y += 3 * std::sin(testPos.o);
             if(!Location(p, c, testPos)) { error("OUTSIDE_CAMP"); return; }
             if(props.size() >= 10000 || (!c.gmMode && Count(account) >= cap)) { error("PROP_CAP"); return; }
