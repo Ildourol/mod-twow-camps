@@ -6,7 +6,7 @@
 namespace Camps
 {
 constexpr unsigned ProtocolVersion = 1;
-constexpr unsigned PageSize = 8;
+constexpr unsigned PageSize = 16;
 struct Request
 {
     uint32_t id = 0;

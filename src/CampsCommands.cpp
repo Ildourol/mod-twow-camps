@@ -118,7 +118,7 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
         {
             for(auto const& pair:sObjectMgr.GetCreatureInfoMap())
             {
-                if(!SafeCreature(pair.first)) continue;
+                if(!c.gmMode && !Safe(pair.first, 1)) continue;
                 process(GetTemplate(pair.first, 1));
             }
         }
@@ -126,7 +126,7 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
         {
             for(auto const& pair:sObjectMgr.GetItemPrototypeMap())
             {
-                if(!SafeItem(pair.first)) continue;
+                if(!c.gmMode && !Safe(pair.first, 2)) continue;
                 process(GetTemplate(pair.first, 2));
             }
         }
@@ -134,8 +134,21 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
         {
             for(auto const& pair:sObjectMgr.GetGameObjectInfoMap())
             {
-                if(!SafeGameObject(pair.first)) continue;
+                if(!c.gmMode && !Safe(pair.first, 0)) continue;
                 process(GetTemplate(pair.first, 0));
+            }
+            if(category.empty())
+            {
+                for(auto const& pair:sObjectMgr.GetCreatureInfoMap())
+                {
+                    if(!c.gmMode && !Safe(pair.first, 1)) continue;
+                    process(GetTemplate(pair.first, 1));
+                }
+                for(auto const& pair:sObjectMgr.GetItemPrototypeMap())
+                {
+                    if(!c.gmMode && !Safe(pair.first, 2)) continue;
+                    process(GetTemplate(pair.first, 2));
+                }
             }
         }
         send("END",{"CATALOG",S(count),S(page)}); return;
@@ -206,7 +219,7 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
         if(r.op=="DELTA")
         {
             float x,y,z,o;
-            if(!Number(r.args[1],x,5) || !Number(r.args[2],y,5) || !Number(r.args[3],z,5) || !Number(r.args[4],o,0.7854f)) { error("DELTA_RANGE"); return; }
+            if(!Number(r.args[1],x,25.0f) || !Number(r.args[2],y,25.0f) || !Number(r.args[3],z,25.0f) || !Number(r.args[4],o,3.1416f)) { error("DELTA_RANGE"); return; }
             float facing=p->GetOrientation(); pos.x+=x*std::cos(facing)-y*std::sin(facing);
             pos.y+=x*std::sin(facing)+y*std::cos(facing); pos.z+=z;
             pos.o=std::fmod(pos.o+o+6.2831853f,6.2831853f);

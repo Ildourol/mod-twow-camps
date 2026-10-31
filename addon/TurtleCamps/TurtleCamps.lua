@@ -47,7 +47,7 @@ end
 
 -- Main Window (Compact, elegant 840x600 frame)
 local frame = CreateFrame("Frame", "TurtleCampsFrame", UIParent)
-frame:SetWidth(840); frame:SetHeight(600); frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+frame:SetWidth(860); frame:SetHeight(680); frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 frame:SetMovable(true); frame:EnableMouse(true); frame:EnableMouseWheel(true); frame:RegisterForDrag("LeftButton")
 frame:SetScript("OnDragStart", function() this:StartMoving() end)
 frame:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
@@ -240,8 +240,8 @@ local refresh, updateButtonStates
 
 -- 2D Picture / Thematic Icon Card (Right Column)
 local iconCard = CreateFrame("Frame", "TurtleCampsIconCard", frame)
-iconCard:SetWidth(274); iconCard:SetHeight(128)
-iconCard:SetPoint("TOPLEFT", frame, "TOPLEFT", 550, -42)
+iconCard:SetWidth(290); iconCard:SetHeight(136)
+iconCard:SetPoint("TOPLEFT", frame, "TOPLEFT", 554, -38)
 iconCard:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -371,19 +371,63 @@ wLabel("Database & Web Links", 8, -6, "GameFontNormal")
 
 local dbLinkMode = "WOWHEAD" -- "WOWHEAD", "TURTLE_DB", or "VIEWER_3D"
 local linkWowheadBtn, linkTurtleBtn, linkViewerBtn
+local currentWebUrl = ""
 
-local webLinkBox = CreateFrame("EditBox", "TurtleCampsWebURL", webBox, "InputBoxTemplate")
-webLinkBox:SetWidth(256); webLinkBox:SetHeight(20); webLinkBox:SetPoint("TOPLEFT", webBox, "TOPLEFT", 8, -48)
+local webUrlFrame = CreateFrame("Frame", "TurtleCampsWebURLFrame", webBox)
+webUrlFrame:SetWidth(260); webUrlFrame:SetHeight(28)
+webUrlFrame:SetPoint("TOPLEFT", webBox, "TOPLEFT", 7, -44)
+webUrlFrame:SetBackdrop({
+    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true, tileSize = 12, edgeSize = 10,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 }
+})
+webUrlFrame:SetBackdropColor(0.02, 0.02, 0.04, 0.95)
+webUrlFrame:SetBackdropBorderColor(0.55, 0.55, 0.55, 0.85)
+
+local webLinkBox = CreateFrame("EditBox", "TurtleCampsWebURL", webUrlFrame)
+webLinkBox:SetWidth(254); webLinkBox:SetHeight(24)
+webLinkBox:SetPoint("TOPLEFT", webUrlFrame, "TOPLEFT", 3, -2)
 webLinkBox:SetAutoFocus(false)
+webLinkBox:SetMultiLine(true)
+webLinkBox:SetFontObject(GameFontHighlightSmall)
+pcall(webLinkBox.SetFont, webLinkBox, "Fonts\\ARIALN.TTF", 10, "")
+webLinkBox:SetTextColor(1.0, 1.0, 1.0)
+
+local function showUrlTooltip(owner)
+    if currentWebUrl and currentWebUrl ~= "" then
+        GameTooltip:SetOwner(owner or webUrlFrame, "ANCHOR_TOP")
+        GameTooltip:SetText("Database & Web URL", 1.0, 0.82, 0.0)
+        GameTooltip:AddLine(currentWebUrl, 0.4, 0.8, 1.0, 1)
+        GameTooltip:AddLine("Click box & press Ctrl+C to copy", 0.7, 0.7, 0.7)
+        GameTooltip:Show()
+    end
+end
+
 webLinkBox:SetScript("OnEscapePressed", function() this:ClearFocus() end)
+webLinkBox:SetScript("OnEnterPressed", function() this:ClearFocus() end)
 webLinkBox:SetScript("OnEditFocusGained", function() this:HighlightText() end)
 webLinkBox:SetScript("OnMouseUp", function() this:HighlightText() end)
 webLinkBox:SetScript("OnEditFocusLost", function()
+    if currentWebUrl and currentWebUrl ~= "" then
+        this:SetText(currentWebUrl)
+    end
     if this.HighlightText then this:HighlightText(0, 0) end
 end)
+webLinkBox:SetScript("OnEnter", function() showUrlTooltip(this) end)
+webLinkBox:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+webUrlFrame:EnableMouse(true)
+webUrlFrame:SetScript("OnMouseDown", function()
+    webLinkBox:SetFocus()
+    webLinkBox:HighlightText()
+end)
+webUrlFrame:SetScript("OnEnter", function() showUrlTooltip(this) end)
+webUrlFrame:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
 local function setWebUrl(url)
-    webLinkBox:SetText(url)
+    currentWebUrl = url or ""
+    webLinkBox:SetText(currentWebUrl)
     if webLinkBox.HighlightText then
         webLinkBox:HighlightText(0, 0)
     end
@@ -454,7 +498,7 @@ linkViewerBtn:SetScript("OnClick", function() dbLinkMode = "VIEWER_3D"; updateLi
 setTooltip(linkViewerBtn, "3D Model Viewer", "Switch link box to the online 3D web model viewer URL.")
 
 updateLinkModeButtons()
-wLabel("|cff888888Click URL & press Ctrl+C to copy|r", 8, -72, "GameFontDisableSmall")
+wLabel("|cff888888Click URL & press Ctrl+C to copy|r", 8, -74, "GameFontDisableSmall")
 
 -- Quick Spawn Section (Inside webBox)
 wLabel("Quick Spawn by ID:", 8, -88, "GameFontNormalSmall")
@@ -486,7 +530,7 @@ setTooltip(quickSpawnBtn, "Quick Spawn", "Directly spawn the entered ID at your 
 
 -- Controls Shortcut Guide Card (Right Column)
 local navBox = CreateFrame("Frame", nil, frame)
-navBox:SetWidth(274); navBox:SetHeight(124)
+navBox:SetWidth(290); navBox:SetHeight(154)
 navBox:SetPoint("TOPLEFT", webBox, "BOTTOMLEFT", 0, -6)
 navBox:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -510,10 +554,10 @@ nLabel("|cffffd100Alt+Wheel:|r Strafe Left / Right", 8, -78)
 nLabel("|cff888888Click new item to auto-cancel preview|r", 8, -100, "GameFontDisableSmall")
 
 -- Search and Category Filters
-local query = box("TurtleCampsQuery", 62, -70, 140)
-local category = box("TurtleCampsCategory", 260, -70, 95)
-label("Search:", 16, -72, 45, "GameFontHighlightSmall")
-label("Cat:", 232, -72, 28, "GameFontHighlightSmall")
+local query = box("TurtleCampsQuery", 54, -64, 115)
+local category = box("TurtleCampsCategory", 204, -64, 85)
+label("Search:", 14, -66, 40, "GameFontHighlightSmall")
+label("Cat:", 174, -66, 28, "GameFontHighlightSmall")
 
 -- Top Navigation Tabs (Left Container)
 local tabButtons = {}
@@ -523,54 +567,54 @@ local function updateTabHighlights()
     end
 end
 
-tabButtons["CATALOG"] = button("Props", 16, -42, 62, function() TC.view="CATALOG"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["CATALOG"] = button("Props", 14, -38, 62, function() TC.view="CATALOG"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["CATALOG"], "Props Catalog", "Browse tents, campfires, furniture, decorations, and placeable world props.")
 
-tabButtons["BUILDINGS"] = button("Buildings", 80, -42, 70, function() TC.view="BUILDINGS"; category:SetText("Buildings"); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["BUILDINGS"] = button("Buildings", 78, -38, 70, function() TC.view="BUILDINGS"; category:SetText("Buildings"); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["BUILDINGS"], "Buildings Catalog", "Browse large pavilions, lodges, towers, and permanent shelter models.")
 
-tabButtons["CREATURES"] = button("Creatures", 152, -42, 72, function() TC.view="CREATURES"; category:SetText("Creatures"); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["CREATURES"] = button("Creatures", 150, -38, 72, function() TC.view="CREATURES"; category:SetText("Creatures"); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["CREATURES"], "Creatures & NPCs", "Browse camp companions, guards, vendors, and ambient NPCs.")
 
-tabButtons["ITEMS"] = button("Items", 226, -42, 56, function() TC.view="ITEMS"; category:SetText("Items"); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["ITEMS"] = button("Items", 224, -38, 56, function() TC.view="ITEMS"; category:SetText("Items"); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["ITEMS"], "Items Catalog", "Browse placeable equipment, supplies, weapons, and ground clutter.")
 
-tabButtons["OBJECTS"] = button("Owned", 284, -42, 58, function() TC.view="OBJECTS"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["OBJECTS"] = button("Owned", 282, -38, 58, function() TC.view="OBJECTS"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["OBJECTS"], "Active Camp Spawns", "View, inspect, edit, or delete all props currently placed in your active camp.")
 
-tabButtons["CAMPS"] = button("Camps", 344, -42, 58, function() TC.view="CAMPS"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["CAMPS"] = button("Camps", 342, -38, 58, function() TC.view="CAMPS"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["CAMPS"], "Camp List", "View your established camp details or discover and travel to public camps.")
 
-tabButtons["FAVORITES"] = button("Favs", 404, -42, 58, function() TC.view="FAVORITES"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["FAVORITES"] = button("Favs", 402, -38, 58, function() TC.view="FAVORITES"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["FAVORITES"], "Favorite Props", "Quickly access your bookmarked props and frequently used decorations.")
 
-tabButtons["RECENT"] = button("Recent", 464, -42, 62, function() TC.view="RECENT"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
+tabButtons["RECENT"] = button("Recent", 462, -38, 62, function() TC.view="RECENT"; category:SetText(""); query:SetText(""); TC.page=0; refresh() end, 22)
 setTooltip(tabButtons["RECENT"], "Recently Placed", "View the history of props and items you have placed in this session.")
 
-local clearBtn = button("X", 360, -70, 20, function()
+local clearBtn = button("X", 293, -64, 18, function()
     query:SetText(""); category:SetText(""); TC.page=0; refresh()
 end, 20)
 setTooltip(clearBtn, "Clear Filters", "Clear search query and category filters to show all props.")
 
-local searchBtn = button("Search", 384, -70, 52, function() TC.page=0; refresh() end, 20)
+local searchBtn = button("Search", 314, -64, 48, function() TC.page=0; refresh() end, 20)
 setTooltip(searchBtn, "Search Catalog", "Filter catalog entries matching the entered keyword or numeric ID.")
 
 -- Uncapped Pagination Controls
-local firstPageBtn = button("<<", 440, -70, 20, function() if TC.page > 0 then TC.page = 0; refresh() end end, 20)
+local firstPageBtn = button("<<", 366, -64, 22, function() if TC.page > 0 then TC.page = 0; refresh() end end, 20)
 setTooltip(firstPageBtn, "First Page", "Jump to page 1")
 
-local prevPageBtn = button("<", 462, -70, 18, function() if TC.page > 0 then TC.page = TC.page - 1; refresh() end end, 20)
+local prevPageBtn = button("<", 390, -64, 20, function() if TC.page > 0 then TC.page = TC.page - 1; refresh() end end, 20)
 setTooltip(prevPageBtn, "Prev", "Browse previous page")
 
 local pageText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-pageText:SetPoint("TOPLEFT", frame, "TOPLEFT", 480, -73)
-pageText:SetWidth(44); pageText:SetJustifyH("CENTER")
+pageText:SetPoint("TOPLEFT", frame, "TOPLEFT", 412, -67)
+pageText:SetWidth(46); pageText:SetJustifyH("CENTER")
 pageText:SetText("1/1")
 
-local nextPageBtn = button(">", 524, -70, 18, function() TC.page = TC.page + 1; refresh() end, 20)
+local nextPageBtn = button(">", 460, -64, 20, function() TC.page = TC.page + 1; refresh() end, 20)
 setTooltip(nextPageBtn, "Next", "Browse next page")
 
-local skipPageBtn = button(">>", 544, -70, 20, function() TC.page = TC.page + 10; refresh() end, 20)
+local skipPageBtn = button(">>", 482, -64, 22, function() TC.page = TC.page + 10; refresh() end, 20)
 setTooltip(skipPageBtn, "Skip +10", "Skip forward 10 pages")
 
 local function scrollTable(dir)
@@ -590,8 +634,8 @@ end
 
 -- Catalogue Table Frame (8 Rows, height 234)
 local tableFrame = CreateFrame("Frame", "TurtleCampsTableFrame", frame)
-tableFrame:SetWidth(524); tableFrame:SetHeight(234)
-tableFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -96)
+tableFrame:SetWidth(530); tableFrame:SetHeight(396)
+tableFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 14, -88)
 tableFrame:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -606,16 +650,16 @@ tableFrame:SetScript("OnMouseWheel", function()
 end)
 
 local colH1 = tableFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-colH1:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 8, -4); colH1:SetWidth(50); colH1:SetJustifyH("LEFT"); colH1:SetText("ID")
+colH1:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 8, -4); colH1:SetWidth(48); colH1:SetJustifyH("LEFT"); colH1:SetText("ID")
 
 local colH2 = tableFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-colH2:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 60, -4); colH2:SetWidth(250); colH2:SetJustifyH("LEFT"); colH2:SetText("Name")
+colH2:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 58, -4); colH2:SetWidth(256); colH2:SetJustifyH("LEFT"); colH2:SetText("Name")
 
 local colH3 = tableFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-colH3:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 314, -4); colH3:SetWidth(130); colH3:SetJustifyH("LEFT"); colH3:SetText("Category / Info")
+colH3:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 318, -4); colH3:SetWidth(130); colH3:SetJustifyH("LEFT"); colH3:SetText("Category / Info")
 
 local colH4 = tableFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-colH4:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 448, -4); colH4:SetWidth(68); colH4:SetJustifyH("CENTER"); colH4:SetText("Type")
+colH4:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 452, -4); colH4:SetWidth(72); colH4:SetJustifyH("CENTER"); colH4:SetText("Type")
 
 local rowFrames = {}
 local lastRowClickTime = 0
@@ -635,7 +679,7 @@ local function isRowSelected(row)
 end
 
 local function render()
-    for i = 1, 8 do
+    for i = 1, 16 do
         local row = TC.rows[i]
         local rf = rowFrames[i]
         if row then
@@ -682,11 +726,11 @@ local function render()
     updateButtonStates()
 end
 
-for i = 1, 8 do
+for i = 1, 16 do
     local index = i
     local rf = CreateFrame("Button", "TurtleCampsRow" .. i, tableFrame)
-    rf:SetWidth(512); rf:SetHeight(24)
-    rf:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 6, -20 - (i - 1) * 26)
+    rf:SetWidth(518); rf:SetHeight(22)
+    rf:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 6, -20 - (i - 1) * 23)
     rf:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -705,13 +749,13 @@ for i = 1, 8 do
     rf.idText:SetPoint("LEFT", rf, "LEFT", 4, 0); rf.idText:SetWidth(48); rf.idText:SetJustifyH("LEFT")
 
     rf.nameText = rf:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rf.nameText:SetPoint("LEFT", rf, "LEFT", 54, 0); rf.nameText:SetWidth(250); rf.nameText:SetJustifyH("LEFT")
+    rf.nameText:SetPoint("LEFT", rf, "LEFT", 54, 0); rf.nameText:SetWidth(256); rf.nameText:SetJustifyH("LEFT")
 
     rf.catText = rf:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    rf.catText:SetPoint("LEFT", rf, "LEFT", 308, 0); rf.catText:SetWidth(130); rf.catText:SetJustifyH("LEFT")
+    rf.catText:SetPoint("LEFT", rf, "LEFT", 312, 0); rf.catText:SetWidth(130); rf.catText:SetJustifyH("LEFT")
 
     rf.badgeText = rf:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rf.badgeText:SetPoint("RIGHT", rf, "RIGHT", -4, 0); rf.badgeText:SetWidth(68); rf.badgeText:SetJustifyH("CENTER")
+    rf.badgeText:SetPoint("RIGHT", rf, "RIGHT", -4, 0); rf.badgeText:SetWidth(72); rf.badgeText:SetJustifyH("CENTER")
 
     rf:SetScript("OnClick", function()
         local row = TC.rows[index]
@@ -792,8 +836,8 @@ end
 
 -- Contextual Action Bars (Placed directly below table at y = -336)
 local catActionsFrame = CreateFrame("Frame", "TurtleCampsCatActions", frame)
-catActionsFrame:SetWidth(524); catActionsFrame:SetHeight(28)
-catActionsFrame:SetPoint("TOPLEFT", tableFrame, "BOTTOMLEFT", 0, -4)
+catActionsFrame:SetWidth(530); catActionsFrame:SetHeight(28)
+catActionsFrame:SetPoint("TOPLEFT", tableFrame, "BOTTOMLEFT", 0, -6)
 
 local btnPreview = button("Preview Item", 0, 0, 96, function()
     if TC.selected and (TC.selected.kind == "prop" or TC.selected.kind == "npc" or TC.selected.kind == "creature" or TC.selected.kind == "item") then
@@ -910,8 +954,8 @@ end
 
 -- Owned Spawns Actions Bar (Only shown on "OBJECTS" view)
 local ownedActionsFrame = CreateFrame("Frame", "TurtleCampsOwnedActions", frame)
-ownedActionsFrame:SetWidth(524); ownedActionsFrame:SetHeight(28)
-ownedActionsFrame:SetPoint("TOPLEFT", tableFrame, "BOTTOMLEFT", 0, -4)
+ownedActionsFrame:SetWidth(530); ownedActionsFrame:SetHeight(28)
+ownedActionsFrame:SetPoint("TOPLEFT", tableFrame, "BOTTOMLEFT", 0, -6)
 ownedActionsFrame:Hide()
 
 local btnEdit = button("Edit Spawn", 0, 0, 74, function()
@@ -982,8 +1026,8 @@ setTooltip(btnCampFilter, "Camp Group Filter", "Cycle between showing All props,
 
 -- Camps Actions Bar (Only shown on "CAMPS" view)
 local campsActionsFrame = CreateFrame("Frame", "TurtleCampsCampsActions", frame)
-campsActionsFrame:SetWidth(524); campsActionsFrame:SetHeight(28)
-campsActionsFrame:SetPoint("TOPLEFT", tableFrame, "BOTTOMLEFT", 0, -4)
+campsActionsFrame:SetWidth(530); campsActionsFrame:SetHeight(28)
+campsActionsFrame:SetPoint("TOPLEFT", tableFrame, "BOTTOMLEFT", 0, -6)
 campsActionsFrame:Hide()
 
 local btnClaim, btnPublic, btnRadius, breakButton
@@ -1073,8 +1117,8 @@ end
 
 -- Bottom Transform Bar (Only active when previewing/editing an object)
 local transformCard = CreateFrame("Frame", "TurtleCampsTransformCard", frame)
-transformCard:SetWidth(808); transformCard:SetHeight(154)
-transformCard:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 16, 12)
+transformCard:SetWidth(832); transformCard:SetHeight(136)
+transformCard:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 14, 12)
 transformCard:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -1086,58 +1130,86 @@ transformCard:SetBackdropBorderColor(0.5, 0.5, 0.6, 0.7)
 
 local hudCoords = transformCard:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 hudCoords:SetPoint("TOPLEFT", transformCard, "TOPLEFT", 12, -8)
-hudCoords:SetWidth(784); hudCoords:SetJustifyH("LEFT")
+hudCoords:SetWidth(808); hudCoords:SetJustifyH("LEFT")
 hudCoords:SetText("|cff888888No active preview. Select an item and click Preview to begin.|r")
 
 local function delta(x, y, z, o)
     if not TC.token then message("Preview or edit an object first."); return end
-    local step = TC.step or 0.5
-    if IsShiftKeyDown() then step = step * 4
-    elseif IsControlKeyDown() then step = step * 0.2 end
-    request("DELTA", {TC.token, x * step, y * step, z * step, o * (step / 0.5)})
+    local isRot = (o ~= nil and o ~= 0 and x == 0 and y == 0 and z == 0)
+
+    if isRot then
+        -- Distinct angular step presets for Yaw:
+        -- 0.1y preset -> Fine 5 deg (~0.087 rad)
+        -- 0.5y preset -> Normal 15 deg (~0.262 rad)
+        -- 2.0y preset -> Coarse 45 deg (~0.785 rad)
+        local angle = 0.261799
+        if TC.step <= 0.15 then
+            angle = 0.087266
+        elseif TC.step >= 1.5 then
+            angle = 0.785398
+        else
+            angle = 0.261799
+        end
+        if IsControlKeyDown() then
+            angle = 0.017453 -- 1 degree micro-turn
+        end
+        local dir = (o > 0) and 1 or -1
+        request("DELTA", {TC.token, 0, 0, 0, dir * angle})
+    else
+        local step = TC.step or 0.5
+        if IsShiftKeyDown() then step = step * 4
+        elseif IsControlKeyDown() then step = step * 0.2 end
+        request("DELTA", {TC.token, x * step, y * step, z * step, 0})
+    end
 end
 
 -- Movement Buttons inside transformCard
-local btnFwd = button("Fwd \226\150\178", 12, -32, 68, function() delta(1,0,0,0) end, 24, transformCard)
+local btnFwd = button("Fwd \226\150\178", 12, -32, 64, function() delta(1,0,0,0) end, 24, transformCard)
 setTooltip(btnFwd, "Move Forward", "Nudge the preview prop forward relative to your character's facing direction.")
 
-local btnBack = button("Back \226\150\188", 84, -32, 68, function() delta(-1,0,0,0) end, 24, transformCard)
+local btnBack = button("Back \226\150\188", 80, -32, 64, function() delta(-1,0,0,0) end, 24, transformCard)
 setTooltip(btnBack, "Move Backward", "Nudge the preview prop backward relative to your character's facing direction.")
 
-local btnLeft = button("\226\151\132 Left", 156, -32, 68, function() delta(0,1,0,0) end, 24, transformCard)
+local btnLeft = button("\226\151\132 Left", 148, -32, 64, function() delta(0,1,0,0) end, 24, transformCard)
 setTooltip(btnLeft, "Strafe Left", "Nudge the preview prop to the left relative to your character's facing direction.")
 
-local btnRight = button("Right \226\150\182", 228, -32, 68, function() delta(0,-1,0,0) end, 24, transformCard)
+local btnRight = button("Right \226\150\182", 216, -32, 64, function() delta(0,-1,0,0) end, 24, transformCard)
 setTooltip(btnRight, "Strafe Right", "Nudge the preview prop to the right relative to your character's facing direction.")
 
-local btnRaise = button("Raise \226\150\178", 300, -32, 68, function() delta(0,0,1,0) end, 24, transformCard)
+local btnRaise = button("Raise \226\150\178", 284, -32, 64, function() delta(0,0,1,0) end, 24, transformCard)
 setTooltip(btnRaise, "Raise Elevation", "Move the preview prop upward along the vertical Z-axis.")
 
-local btnLower = button("Lower \226\150\188", 372, -32, 68, function() delta(0,0,-1,0) end, 24, transformCard)
+local btnLower = button("Lower \226\150\188", 352, -32, 64, function() delta(0,0,-1,0) end, 24, transformCard)
 setTooltip(btnLower, "Lower Elevation", "Move the preview prop downward along the vertical Z-axis.")
 
-local btnGround = button("Ground", 444, -32, 74, function() if TC.token then request("SNAP", {TC.token}) end end, 24, transformCard)
+local btnGround = button("Ground", 420, -32, 70, function() if TC.token then request("SNAP", {TC.token}) end end, 24, transformCard)
 setTooltip(btnGround, "Snap Ground", "Raycast terrain and floor geometry to snap the prop flush with the surface (Hotkey: G).")
 
-local btnYawL = button("Yaw \226\134\182", 522, -32, 68, function() delta(0,0,0,0.261799) end, 24, transformCard)
-setTooltip(btnYawL, "Rotate Left", "Rotate the preview prop 15 degrees counter-clockwise.")
+local btnYawL = button("Yaw \226\134\182", 494, -32, 64, function() delta(0,0,0,1) end, 24, transformCard)
+setTooltip(btnYawL, "Rotate Left", "Rotate preview counter-clockwise (Fine: 5 deg, Normal: 15 deg, Coarse: 45 deg).")
 
-local btnYawR = button("Yaw \226\134\183", 594, -32, 68, function() delta(0,0,0,-0.261799) end, 24, transformCard)
-setTooltip(btnYawR, "Rotate Right", "Rotate the preview prop 15 degrees clockwise.")
+local btnYawR = button("Yaw \226\134\183", 562, -32, 64, function() delta(0,0,0,-1) end, 24, transformCard)
+setTooltip(btnYawR, "Rotate Right", "Rotate preview clockwise (Fine: 5 deg, Normal: 15 deg, Coarse: 45 deg).")
 
--- Sensitivity presets
+-- Sensitivity presets with distinct visual highlights
 local stepButtons = {}
 local function updateStepHighlights()
     for s, btn in pairs(stepButtons) do
-        if TC.step == s then btn:LockHighlight() else btn:UnlockHighlight() end
+        if math.abs(TC.step - s) < 0.01 then
+            btn:SetText("|cff00ff00" .. string.format("%.1f", s) .. "y|r")
+            btn:LockHighlight()
+        else
+            btn:SetText("|cffaaaaaa" .. string.format("%.1f", s) .. "y|r")
+            btn:UnlockHighlight()
+        end
     end
 end
-stepButtons[0.1] = button("0.1y", 668, -32, 34, function() TC.step=0.1; updateStepHighlights() end, 24, transformCard)
-stepButtons[0.5] = button("0.5y", 706, -32, 34, function() TC.step=0.5; updateStepHighlights() end, 24, transformCard)
-stepButtons[2.0] = button("2.0y", 744, -32, 34, function() TC.step=2.0; updateStepHighlights() end, 24, transformCard)
-setTooltip(stepButtons[0.1], "Fine Step", "0.1 yard precision adjustments")
-setTooltip(stepButtons[0.5], "Normal Step", "0.5 yard standard distance")
-setTooltip(stepButtons[2.0], "Coarse Step", "2.0 yard distance for larger movements")
+stepButtons[0.1] = button("0.1y", 632, -32, 44, function() TC.step=0.1; updateStepHighlights(); message("Sensitivity: Fine (0.1 yard / 5 deg rotation)") end, 24, transformCard)
+stepButtons[0.5] = button("0.5y", 680, -32, 44, function() TC.step=0.5; updateStepHighlights(); message("Sensitivity: Normal (0.5 yard / 15 deg rotation)") end, 24, transformCard)
+stepButtons[2.0] = button("2.0y", 728, -32, 44, function() TC.step=2.0; updateStepHighlights(); message("Sensitivity: Coarse (2.0 yards / 45 deg rotation)") end, 24, transformCard)
+setTooltip(stepButtons[0.1], "Fine Step (0.1y)", "0.1 yard position precision adjustments\n5-degree fine rotation steps")
+setTooltip(stepButtons[0.5], "Normal Step (0.5y)", "0.5 yard standard position distance\n15-degree standard rotation steps")
+setTooltip(stepButtons[2.0], "Coarse Step (2.0y)", "2.0 yard distance for larger movements\n45-degree quarter-turn rotation steps")
 updateStepHighlights()
 
 -- Row 2 of Transform Bar: Save, Cancel, Undo, Status, GM/Camp, and Reload Cache
@@ -1254,7 +1326,7 @@ frame:SetScript("OnMouseWheel", function()
         return
     end
     if TC.token then
-        if IsShiftKeyDown() then delta(0, 0, 0, dir * 0.261799)
+        if IsShiftKeyDown() then delta(0, 0, 0, dir)
         elseif IsControlKeyDown() then delta(dir, 0, 0, 0)
         elseif IsAltKeyDown() then delta(0, dir, 0, 0)
         else delta(0, 0, dir, 0) end
@@ -1433,7 +1505,7 @@ events:SetScript("OnEvent", function()
         if op == "BEGIN" then
             TC.rows = {}; TC.selected = nil
         elseif op == "ITEM" then
-            if table.getn(TC.rows) < 8 then
+            if table.getn(TC.rows) < 16 then
                 local eKind = tonumber(f[11]) or 0
                 local kindTag = "prop"
                 if eKind == 1 then kindTag = "creature" elseif eKind == 2 then kindTag = "item" end
@@ -1449,7 +1521,7 @@ events:SetScript("OnEvent", function()
                 })
             end
         elseif op == "OBJECT" then
-            if table.getn(TC.rows) < 8 then
+            if table.getn(TC.rows) < 16 then
                 local eKind = tonumber(f[9]) or 0
                 local kindLabel = (eKind == 1) and "Creature" or "Spawn"
                 local campId = tonumber(f[10]) or 0
@@ -1465,7 +1537,7 @@ events:SetScript("OnEvent", function()
                 })
             end
         elseif op == "CAMP" then
-            if table.getn(TC.rows) < 8 then
+            if table.getn(TC.rows) < 16 then
                 local isPub = (f[9] == "PUBLIC")
                 local visTag = isPub and " |cff00ff00[Public]|r" or " |cff888888[Private]|r"
                 local rad = tonumber(f[10]) or 40

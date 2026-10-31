@@ -33,9 +33,9 @@
         TurtleCamps_Delta(0, 0, -1, 0)
     </Binding>
     <Binding name="TURTLECAMPS_YAW_LEFT" runOnUp="false" category="BINDING_HEADER_TURTLECAMPS">
-        TurtleCamps_Delta(0, 0, 0, 0.261799)
+        TurtleCamps_Delta(0, 0, 0, 1)
     </Binding>
     <Binding name="TURTLECAMPS_YAW_RIGHT" runOnUp="false" category="BINDING_HEADER_TURTLECAMPS">
-        TurtleCamps_Delta(0, 0, 0, -0.261799)
+        TurtleCamps_Delta(0, 0, 0, -1)
     </Binding>
 </Bindings>

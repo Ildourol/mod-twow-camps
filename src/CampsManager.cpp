@@ -34,11 +34,23 @@ std::string Lower(std::string s)
 std::string Category(std::string const& name)
 {
     std::string n = Lower(name);
-    for (auto const& pair : {std::make_pair("tent", "Shelter"), {"house", "Buildings"},
-        {"table", "Furniture"}, {"chair", "Furniture"}, {"fire", "Fire & Light"},
-        {"torch", "Fire & Light"}, {"crate", "Storage"}, {"barrel", "Storage"},
-        {"anvil", "Crafting"}, {"banner", "Banners"}, {"food", "Food & Provisions"},
-        {"tree", "Nature"}, {"bush", "Nature"}, {"fence", "Yard"}, {"smoke", "Atmosphere"}})
+    for (auto const& pair : {
+        std::make_pair("tent", "Shelter"), {"canopy", "Shelter"}, {"pavilion", "Shelter"},
+        {"house", "Buildings"}, {"tower", "Buildings"}, {"hut", "Buildings"}, {"cabin", "Buildings"},
+        {"lodge", "Buildings"}, {"barn", "Buildings"}, {"stable", "Buildings"}, {"mill", "Buildings"}, {"dock", "Buildings"},
+        {"table", "Furniture"}, {"chair", "Furniture"}, {"bench", "Furniture"}, {"stool", "Furniture"},
+        {"throne", "Furniture"}, {"bed", "Furniture"}, {"couch", "Furniture"}, {"rug", "Furniture"}, {"carpet", "Furniture"},
+        {"fire", "Fire & Light"}, {"torch", "Fire & Light"}, {"brazier", "Fire & Light"}, {"candle", "Fire & Light"},
+        {"lantern", "Fire & Light"}, {"campfire", "Fire & Light"}, {"bonfire", "Fire & Light"},
+        {"crate", "Storage"}, {"barrel", "Storage"}, {"chest", "Storage"}, {"sack", "Storage"}, {"box", "Storage"},
+        {"anvil", "Crafting"}, {"forge", "Crafting"}, {"smithy", "Crafting"}, {"oven", "Crafting"},
+        {"banner", "Banners"}, {"flag", "Banners"}, {"standard", "Banners"},
+        {"food", "Food & Provisions"}, {"feast", "Food & Provisions"}, {"meat", "Food & Provisions"},
+        {"tree", "Nature"}, {"bush", "Nature"}, {"plant", "Nature"}, {"flower", "Nature"}, {"rock", "Nature"}, {"stone", "Nature"}, {"well", "Nature"},
+        {"fence", "Yard"}, {"gate", "Yard"}, {"wall", "Yard"}, {"post", "Yard"}, {"wagon", "Yard"}, {"cart", "Yard"},
+        {"target", "Training"}, {"dummy", "Training"},
+        {"smoke", "Atmosphere"}
+    })
         if (n.find(pair.first) != std::string::npos) return pair.second;
     return "Miscellaneous";
 }
@@ -59,11 +71,15 @@ bool IdList(std::string const& text, std::set<uint32_t>& out)
 bool Manager::SafeGameObject(uint32_t entry) const
 {
     auto t = sObjectMgr.GetGameObjectInfo(entry);
-    if (!t || (t->type != GAMEOBJECT_TYPE_GENERIC && t->type != GAMEOBJECT_TYPE_CHAIR && t->type != GAMEOBJECT_TYPE_MAP_OBJECT) ||
-        t->ScriptId || t->PhaseQuestId || t->MinMoneyLoot || t->MaxMoneyLoot ||
-        !t->displayId || !std::isfinite(t->size) || t->size <= 0 || t->size > 20 ||
+    if (!t) return false;
+    if (t->type != GAMEOBJECT_TYPE_GENERIC && 
+        t->type != GAMEOBJECT_TYPE_CHAIR && 
+        t->type != GAMEOBJECT_TYPE_SPELL_FOCUS && 
+        t->type != GAMEOBJECT_TYPE_MAP_OBJECT)
+        return false;
+    if (t->ScriptId || t->PhaseQuestId || t->MinMoneyLoot || t->MaxMoneyLoot ||
+        !t->displayId || !std::isfinite(t->size) || t->size <= 0 || t->size > 25 ||
         !sGameObjectDisplayInfoStore.LookupEntry(t->displayId)) return false;
-    for (unsigned i = 0; i < 24; ++i) if (i != 3 && t->raw.data[i]) return false;
     auto q = sObjectMgr.GetGOQuestRelationsMapBounds(entry);
     auto involved = sObjectMgr.GetGOQuestInvolvedRelationsMapBounds(entry);
     return q.first == q.second && involved.first == involved.second;
@@ -115,6 +131,7 @@ bool Manager::Safe(uint32_t entry, uint8_t kind) const
 {
     auto ov = overrides.find(entry);
     if (ov != overrides.end() && !ov->second.enabled) return false;
+    if (ov != overrides.end() && ov->second.player) return true;
     if (kind == 1) return SafeCreature(entry);
     if (kind == 2) return SafeItem(entry);
     return SafeGameObject(entry);
@@ -157,7 +174,10 @@ CatalogEntry Manager::GetTemplate(uint32_t entry, uint8_t kind) const
             out.type = t->type;
             out.size = t->size;
             out.name = t->name.substr(0, 48);
-            out.category = (t->type == GAMEOBJECT_TYPE_MAP_OBJECT) ? "Buildings" : (ov != overrides.end() && !ov->second.category.empty() ? ov->second.category : Category(t->name));
+            out.category = (t->type == GAMEOBJECT_TYPE_MAP_OBJECT) ? "Buildings" :
+                           (t->type == GAMEOBJECT_TYPE_CHAIR) ? "Furniture" :
+                           (t->type == GAMEOBJECT_TYPE_SPELL_FOCUS) ? "Fire & Light" :
+                           (ov != overrides.end() && !ov->second.category.empty() ? ov->second.category : Category(t->name));
             out.player = (ov == overrides.end() || ov->second.player);
         }
     }
