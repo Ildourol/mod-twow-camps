@@ -791,8 +791,12 @@ for i = 1, 16 do
         local now = GetTime()
         if lastRowClickIndex == index and (now - lastRowClickTime) < 0.4 then
             if row.kind == "prop" or row.kind == "npc" or row.kind == "creature" or row.kind == "item" then
-                request("PREVIEW", {row.id, row.entityKind or 0})
-                message("Previewing " .. (row.name or row.id) .. "...")
+                if row.entityKind == 2 then
+                    message("|cffffaa00Inventory items cannot be placed in the 3D world. Select a Prop, Building, or Creature.|r")
+                else
+                    request("PREVIEW", {row.id, row.entityKind or 0})
+                    message("Previewing " .. (row.name or row.id) .. "...")
+                end
             elseif row.kind == "object" then
                 request("EDIT", {row.id})
             end
@@ -841,6 +845,10 @@ catActionsFrame:SetPoint("TOPLEFT", tableFrame, "BOTTOMLEFT", 0, -6)
 
 local btnPreview = button("Preview Item", 0, 0, 96, function()
     if TC.selected and (TC.selected.kind == "prop" or TC.selected.kind == "npc" or TC.selected.kind == "creature" or TC.selected.kind == "item") then
+        if TC.selected.entityKind == 2 then
+            message("|cffffaa00Inventory items cannot be placed in the 3D world. Select a Prop, Building, or Creature.|r")
+            return
+        end
         request("PREVIEW", {TC.selected.id, TC.selected.entityKind or 0})
     end
 end, 24, catActionsFrame)
@@ -1695,7 +1703,23 @@ events:SetScript("OnEvent", function()
             connect(true)
         elseif op == "ERROR" then
             local errCode = f[4] or "ERROR"
-            if errCode == "MODULE_DISABLED" or errCode == "DISABLED_OR_PERMISSION" then
+            if errCode == "NO_CAMP" then
+                message("|cffffaa00You have no camp here! Claim a camp first (Claim Camp button) or switch to GM Mode.|r")
+            elseif errCode == "OUTSIDE_CAMP" then
+                message("|cffffaa00Placement rejected: Location is outside your camp radius (" .. TC.campRadius .. "y). Move inside your camp.|r")
+            elseif errCode == "ITEM_CANNOT_SPAWN" then
+                message("|cffffaa00Inventory items cannot be placed in the 3D world. Select a Prop, Building, or Creature.|r")
+            elseif errCode == "OBJECT_UNSAFE" then
+                message("|cffffaa00Placement rejected: This object is restricted for player camps. Switch to GM Mode to place it.|r")
+            elseif errCode == "OBJECT_GM_ONLY" then
+                message("|cffffaa00Placement rejected: Staff / GM permission required for this object.|r")
+            elseif errCode == "PROP_CAP" then
+                message("|cffffaa00Camp limit reached (max " .. (TC.campUsage and TC.campUsage.cap or 100) .. " props). Remove an existing prop first.|r")
+            elseif errCode == "PREVIEW_REJECTED" then
+                message("|cffff3333Server preview rejected: Check camp radius, permissions, or switch to GM Mode.|r")
+            elseif errCode == "SAVE_REJECTED" then
+                message("|cffff3333Save rejected: Location is outside your camp boundary or prop limit reached.|r")
+            elseif errCode == "MODULE_DISABLED" or errCode == "DISABLED_OR_PERMISSION" then
                 message("|cffff3333Server: TurtleCamps is disabled. Set Camps.Enable = 1 in mod-twow-camps.conf|r")
             elseif errCode == "PLAYER_CAMPS_DISABLED" then
                 message("|cffffaa00Server: Player camps are disabled. Set Camps.Players = 1 in mod-twow-camps.conf or use GM Mode.|r")

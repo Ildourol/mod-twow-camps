@@ -78,7 +78,7 @@ bool Manager::SafeGameObject(uint32_t entry) const
         t->type != GAMEOBJECT_TYPE_MAP_OBJECT)
         return false;
     if (t->ScriptId || t->PhaseQuestId || t->MinMoneyLoot || t->MaxMoneyLoot ||
-        !t->displayId || !std::isfinite(t->size) || t->size <= 0 || t->size > 25 ||
+        !t->displayId || !std::isfinite(t->size) || t->size <= 0 ||
         !sGameObjectDisplayInfoStore.LookupEntry(t->displayId)) return false;
     auto q = sObjectMgr.GetGOQuestRelationsMapBounds(entry);
     auto involved = sObjectMgr.GetGOQuestInvolvedRelationsMapBounds(entry);
@@ -395,9 +395,11 @@ void Manager::Tick()
 }
 bool Manager::Begin(Player* p, Client& c, uint32_t entry, Prop const* source, bool duplicate, uint8_t kind)
 {
-    if(c.edit.token || !Safe(entry, kind)) return false;
+    if (c.edit.token) Cancel(c);
+    if (kind == 2) return false;
+    if (!c.gmMode && !Safe(entry, kind)) return false;
     CatalogEntry cat = GetTemplate(entry, kind);
-    if(!c.gmMode && !cat.player) return false;
+    if (!c.gmMode && !cat.player) return false;
     if(source)
     {
         if(!Current(*source)) return false;
@@ -459,7 +461,7 @@ void Manager::Push(Client& c, Undo::Kind kind, Prop const& prop)
 bool Manager::Save(Player* p, Client& c, Prop& result)
 {
     auto& e=c.edit;
-    if(!e.token || !Location(p,c,e.working) || !Safe(e.entry, e.kind)) return false;
+    if(!e.token || !Location(p,c,e.working) || (!c.gmMode && !Safe(e.entry, e.kind))) return false;
     CatalogEntry cat = GetTemplate(e.entry, e.kind);
     if(!c.gmMode && !cat.player) return false;
     auto live=Resolve(e); if(!live || live->IsDeleted()) return false;

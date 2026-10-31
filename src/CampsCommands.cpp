@@ -206,7 +206,20 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
             else if(sObjectMgr.GetItemPrototype(id)) kindVal = 2;
         }
         if(r.op!="PREVIEW" && !source) { error("NOT_FOUND"); return; }
-        if(!Begin(p,c,source?source->entry:id,source,r.op=="DUPLICATE", uint8_t(kindVal))) { error("PREVIEW_REJECTED"); return; }
+        uint32_t targetEntry = source ? source->entry : id;
+        if(r.op == "PREVIEW")
+        {
+            if(kindVal == 2) { error("ITEM_CANNOT_SPAWN"); return; }
+            if(!c.gmMode && !camps.count(account)) { error("NO_CAMP"); return; }
+            if(!c.gmMode && !Safe(targetEntry, uint8_t(kindVal))) { error("OBJECT_UNSAFE"); return; }
+            CatalogEntry cat = GetTemplate(targetEntry, uint8_t(kindVal));
+            if(!c.gmMode && !cat.player) { error("OBJECT_GM_ONLY"); return; }
+            Transform testPos = Position(p);
+            testPos.x += 3 * std::cos(testPos.o); testPos.y += 3 * std::sin(testPos.o);
+            if(!Location(p, c, testPos)) { error("OUTSIDE_CAMP"); return; }
+            if(props.size() >= 10000 || (!c.gmMode && Count(account) >= cap)) { error("PROP_CAP"); return; }
+        }
+        if(!Begin(p,c,targetEntry,source,r.op=="DUPLICATE", uint8_t(kindVal))) { error("PREVIEW_REJECTED"); return; }
         editReply(); return;
     }
     if(r.op=="DELTA" || r.op=="SNAP" || r.op=="SAVE" || r.op=="CANCEL")
@@ -214,7 +227,17 @@ void Manager::Handle(ChatHandler* h, std::string const& input)
         if(!exact(r.op=="DELTA"?5:1)) return;
         if(!token()) { error("STALE_EDIT"); return; }
         if(r.op=="CANCEL") { Cancel(c); send("CANCEL",{}); return; }
-        if(r.op=="SAVE") { Prop result; if(!Save(p,c,result)) error("SAVE_REJECTED"); else send("SAVED",{S(result.guid),S(result.entry),S(unsigned(result.kind))}); return; }
+        if(r.op=="SAVE")
+        {
+            if(!Location(p, c, c.edit.working)) { error("OUTSIDE_CAMP"); return; }
+            if(!c.gmMode && !Safe(c.edit.entry, c.edit.kind)) { error("OBJECT_UNSAFE"); return; }
+            if(!c.edit.source && props.size() >= 10000) { error("PROP_CAP"); return; }
+            if(!c.edit.source && !c.gmMode && Count(account) >= cap) { error("PROP_CAP"); return; }
+            Prop result;
+            if(!Save(p,c,result)) { error("SAVE_REJECTED"); }
+            else { send("SAVED",{S(result.guid),S(result.entry),S(unsigned(result.kind))}); }
+            return;
+        }
         auto pos=c.edit.working;
         if(r.op=="DELTA")
         {
