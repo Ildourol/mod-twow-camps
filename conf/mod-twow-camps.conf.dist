@@ -1,37 +1,135 @@
 [ModuleConf]
-# Turtle WoW Camps & World Builder Module Configuration
-# Master enable switch (1 = Enabled, 0 = Disabled)
+###################################################################################################
+# TURTLE WOW CUSTOM VMANGOS MODULE: mod-twow-camps
+# Decorative Campsites, Housing & GM World Builder System
+# Compatible with Turtle WoW 1.18.1 (build 7272) / Vanilla 1.12.1
+###################################################################################################
+
+# =================================================================================================
+# 1. MASTER CONTROLS & MODULE INITIALIZATION
+# =================================================================================================
+
+# Master enable switch for the Camps & World Builder module.
+# When enabled (1), initializes database schemas, loads camps and placed scenery props,
+# activates .camp commands, and processes AddOn network communication.
+# 1 = Enabled (Default)
+# 0 = Disabled
 Camps.Enable = 1
 
-# Normal player personal camp building (1 = Enabled, 0 = GM-only)
+
+# =================================================================================================
+# 2. PLAYER PERMISSIONS & FEATURE SWITCHES
+# =================================================================================================
+
+# Enable or disable personal campsite building for regular non-GM players.
+# When enabled (1), ordinary players can claim outdoor camp territories on Eastern Kingdoms
+# and Kalimdor, place catalog props/creatures/items, and manage camp permissions.
+# When disabled (0), camp creation and prop placement is restricted strictly to Game Masters.
+# 1 = Enabled for all players (Default)
+# 0 = GM-only mode
 Camps.Players = 1
 
-# Public camp visiting / travel (1 = Enabled, 0 = Disabled)
+# Enable or disable public campsite visitation and player fast-travel.
+# When enabled (1), players whose camps are marked as "Public" appear in the AddOn Camps directory,
+# allowing other players to visit them via the '.camp visit' travel action.
+# 1 = Enabled (Default)
+# 0 = Disabled
 Camps.Visits = 1
 
-# Maximum placed props allowed per account camp (1-500)
+
+# =================================================================================================
+# 3. CAMP BOUNDARIES, DENSITY & SPACING RESTRICTIONS
+# =================================================================================================
+
+# Maximum number of placed scenery props, creatures, and items permitted per account campsite.
+# Protects server entity density, memory footprint, and client rendering framerates.
+# Range:   1 - 500
+# Default: 100
 Camps.PropCap = 100
 
-# Personal camp boundary radius in yards (5-100)
+# Personal campsite territory boundary radius in yards.
+# Defines the spherical/horizontal radius around the camp center within which all player props
+# must be placed.
+# Range:   5 - 100 yards
+# Default: 40
 Camps.Radius = 40
 
-# Minimum spacing between personal camps in yards (must be >= 2*Radius, max 1000)
+# Minimum horizontal spacing between distinct personal campsites in yards.
+# Enforced by the core engine to be at least twice the camp radius (>= 2 * Camps.Radius) to
+# prevent overlapping campsite territories between different accounts.
+# Range:   10 - 1000 yards (enforced >= 2 * Camps.Radius)
+# Default: 100
 Camps.MinimumSpacing = 100
 
-# Idle preview edit timeout in seconds (15-600)
+
+# =================================================================================================
+# 4. PREVIEW TIMEOUTS & TRAVEL MECHANICS
+# =================================================================================================
+
+# Idle timeout in seconds for active 3D object preview and editing sessions.
+# If a player or GM remains idle without moving, rotating, or saving their previewed object,
+# the preview session automatically expires and cleans up the temporary spawn.
+# Range:   15 - 600 seconds
+# Default: 120
 Camps.EditTimeoutSeconds = 120
 
-# Shared travel cooldown in seconds (15-3600)
+# Shared travel cooldown timer in seconds for campsite teleport actions:
+#   - Teleporting back to one's own campsite ('.camp go')
+#   - Teleporting to visit another player's public campsite ('.camp visit')
+# Cooldown applies per active character session.
+# Range:   15 - 3600 seconds
+# Default: 60
 Camps.TravelCooldownSeconds = 60
 
-# Minimum security level for GM builder mode (1 = Observer, 2 = Moderator, 3 = Developer, 4 = Admin)
+
+# =================================================================================================
+# 5. GAME MASTER (GM) WORLD BUILDER CONTROLS
+# =================================================================================================
+
+# Minimum account security level required for unrestricted GM World Builder mode.
+# GM mode allows placing decorative scenery props anywhere in the open world without
+# claiming an account campsite territory first.
+#   1 = SEC_MODERATOR (Moderator / Trial GM)
+#   2 = SEC_MODERATOR (Moderator)
+#   3 = SEC_DEVELOPER (Developer / Senior GM)
+#   4 = SEC_ADMINISTRATOR (Administrator)
+# Default: 2
 Camps.GMSecurityLevel = 2
 
-# Require InnoDB on core association tables (1 = Strict disable if MyISAM, 0 = Allow with notice)
-Camps.RequireInnoDB = 0
 
-# Comma-separated native IDs, at most 64 per list; blank disables the blacklist.
-# Normal-player building already restricts maps to continents 0 and 1.
+# =================================================================================================
+# 6. GEOGRAPHIC & LOCATION BLACKLISTS
+# =================================================================================================
+
+# Comma-separated lists of native IDs forbidden for player camp building or travel.
+# At most 64 IDs per list; leaving blank ("") disables that blacklist category.
+# Note: Normal player building is already hard-restricted to outdoor maps 0 (Eastern Kingdoms)
+#       and 1 (Kalimdor). GM placement bypasses personal camp geographical restrictions.
+
+# Comma-separated list of Map IDs where player camp placement is disallowed.
+# Example: "30, 489, 529"
+# Default: "" (No additional maps forbidden)
 Camps.ForbiddenMaps = ""
+
+# Comma-separated list of Zone IDs where player camp placement is disallowed.
+# Useful for protecting major capital cities, faction hubs, or high-traffic quest hubs.
+# Example: "1519, 1537, 1637"
+# Default: "" (No zones forbidden)
 Camps.ForbiddenZones = ""
+
+# Comma-separated list of sub-Area IDs where player camp placement is disallowed.
+# Example: "12, 14"
+# Default: "" (No sub-areas forbidden)
 Camps.ForbiddenAreas = ""
+
+
+# =================================================================================================
+# 7. DATABASE INTEGRITY & STORAGE ENGINE POLICY
+# =================================================================================================
+
+# Enforce strict InnoDB storage engine requirement for core gameobject and module association tables:
+# (gameobject, game_event_gameobject, gameobject_battleground, camps_camp, camps_prop).
+#   1 = Strict enforcement: module will refuse to initialize if any required table is MyISAM or Aria.
+#   0 = Relaxed enforcement: logs a console notice regarding relaxed atomicity but allows normal operation.
+# Default: 0 - (Allow with notice)
+Camps.RequireInnoDB = 0

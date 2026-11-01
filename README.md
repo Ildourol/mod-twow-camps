@@ -2,9 +2,11 @@
 
 ![TurtleCamps Banner](docs/images/turtle_camps_banner.jpg)
 
-A standalone decorative camp and GM world editor for the Tortoise Turtle 1.18.1 (build 7272) core. Open `/tc`, search safe props, buildings, creatures, or items, preview them in the world, move/raise/rotate/snap them, and Save. Manage account camps, adjust territory size, toggle public/private visibility, or force delete spawns anytime.
+A standalone decorative campsite housing system and GM open-world builder for the Tortoise Turtle WoW 1.18.1 (build 7272) core. Open `/tc`, search through safe props, buildings, creatures, or items, preview them in the world, move/raise/rotate/snap them with precision 3D controls, and save them persistently. Manage account camps, adjust territory size, toggle public/private visibility, or force-delete spawns anytime.
 
 **Status:** Implementation compiles and `mangosd` links cleanly on Windows x64 Release. Full protocol tests (10,042 assertions + 10,000 fuzz checks) and static verification pass.
+
+---
 
 ## Features
 - **Draggable Minimap Button**: Circular, draggable minimap button styled with native tracking borders and an initial randomized outdoor/camp icon. Left-click toggles the window, Right-click re-randomizes the icon, and Left-drag rotates smoothly around the minimap rim. Supports `/tc minimap` and `/tc icon`.
@@ -23,85 +25,115 @@ A standalone decorative camp and GM world editor for the Tortoise Turtle 1.18.1 
 - **Dual Authority**: Normal Player Camp mode vs. GM World Mode (`SEC_DEVELOPER`); cross-editor locks, 20-action undo stack, and ownership validation.
 - **Personal Bookmarks**: 50 persistent favorites and 20 recent placement history slots saved per character.
 
-## Installation and build integration
-Keep this repository standalone. Place a copy or directory junction at
-`<core>/modules/mod-twow-camps` (the `src/` directory must be directly beneath it).
-The core discovers `Addmod_twow_campsScripts()` automatically.
+---
 
-Configure the selected build with `-DMODULE_MOD_TWOW_CAMPS=static`. Global MODULES
-may remain disabled so unrelated optional modules are not enabled. Preserve your
-existing PlayerBots settings. Then build `mangosd`, not just `modules`:
+## Installation and Build Integration
+
+Keep this repository standalone. Place a copy or directory junction at `<core>/modules/mod-twow-camps` (the `src/` directory must be directly beneath it). The core discovers `Addmod_twow_campsScripts()` automatically.
+
+Configure the selected build with `-DMODULE_MOD_TWOW_CAMPS=static`. Global MODULES may remain disabled so unrelated optional modules are not enabled. Preserve your existing PlayerBots settings. Then build `mangosd`, not just `modules`:
 
 ```powershell
 cmake --build "<build-directory>" --config Release --target mangosd --parallel 8
 ```
 
-No installation/deployment or live SQL application was performed by this project.
+No installation/deployment or live SQL application is performed by this repository build step.
 
-## Database and configuration
-1. Back up the world database. Review native table engines and the optional manual
-   `tools/prepare-transactional-tables.sql`. Apply engine changes only in an operator
-   maintenance window. They are deliberately outside the automatic updater path.
-2. Apply `data/sql/world/20260911_01_camps.sql` to the **world** database, manually
-   or through the target updater's module allowlist. No auth/character migration.
-3. Put `conf/mod-twow-camps.conf.dist` beside the target's other module config files
-   as `mod-twow-camps.conf` without `.dist`, retaining `[ModuleConf]`.
-4. Set `Camps.Enable = 1`. Keep `Camps.Players = 0` for GM-only use. Set it to 1
-   for personal camps after checking safe entries and location policy.
+---
 
-| Key | Default | Meaning / enforced range |
-|---|---:|---|
-| Camps.Enable | 1 | Master enable |
-| Camps.Players | 1 | Normal-player camp building |
-| Camps.Visits | 1 | Travel to another public camp |
-| Camps.PropCap | 100 | 1–500 props per personal camp |
-| Camps.Radius | 40 | 5–100 yards, three-dimensional prop boundary |
-| Camps.MinimumSpacing | 100 | At least twice radius, at most 1000; horizontal spacing |
-| Camps.EditTimeoutSeconds | 120 | 15–600 seconds idle edit timeout |
-| Camps.TravelCooldownSeconds | 60 | 15–3600 seconds, shared Go/Visit per active character |
-| Camps.GMSecurityLevel | 2 | Minimum security level for GM builder mode (1=Observer, 2=Mod, 3=Dev, 4=Admin) |
-| Camps.RequireInnoDB | 0 | Strict InnoDB engine requirement on native tables (1=Enforce, 0=Allow with notice) |
-| Camps.ForbiddenMaps | empty | Comma-separated native map IDs; ordinary camps already require 0/1 |
-| Camps.ForbiddenZones | empty | Comma-separated native zone IDs |
-| Camps.ForbiddenAreas | empty | Comma-separated native area IDs |
+## Database and Configuration
 
-Each forbidden-ID list is limited to 64 entries / 512 bytes; malformed lists disable
-the module. Restrictions apply at the proposed prop coordinates and travel destination;
-GM placement bypasses personal camp restrictions.
+1. **Database Backup**: Back up your `world` database. Review native table engines and the optional manual `tools/prepare-transactional-tables.sql`. Apply engine changes only in an operator maintenance window. They are deliberately outside the automatic updater path.
+2. **SQL Migrations**: Apply `data/sql/world/20260911_01_camps.sql` and `data/sql/world/20260912_01_camps_radius.sql` to the **world** database, either manually or through your updater's module allowlist. No auth or character database migration is required.
+3. **Deploy Configuration**: Copy `conf/mod-twow-camps.conf.dist` beside your server's other module configuration files as `mod-twow-camps.conf` (without `.dist`), retaining the `[ModuleConf]` section header.
+4. **Enabled Out-of-the-Box**: By default, the module is enabled (`Camps.Enable = 1`) with personal player camping (`Camps.Players = 1`) and public campsite visitation (`Camps.Visits = 1`) active immediately.
 
-Global safety bounds: 2000 camps, 10000 owned props, 20000 catalogue entries/overrides,
-4096 active client states. Invalid/incomplete persistence loads disable building.
+---
 
-The target resolves module configs under `<main-config-directory>/modules/`. It loads
-the list generated for enabled modules, and a missing module config can prevent
-normal startup. See the target modules README for its install conventions.
+## Configuration Reference
 
-## Addon setup and workflows
-Copy the folder `addon/TurtleCamps` directly into your client's AddOns directory:
-`<Turtle Client>/Interface/AddOns/TurtleCamps` (do not copy the root repository folder).
-Enable it on the character screen. Its TOC uses vanilla Interface 11200. `/tc` and
-`/turtlecamps` open the panel and negotiate protocol version 1.
+The configuration file `conf/mod-twow-camps.conf.dist` is organized into 7 logical categories:
 
-Normal player: choose Camp mode, stand on valid ground on map 0 or 1, Claim, search
-for a prop, select the row and Preview. Use the directional controls; Shift is
-coarse, Ctrl is fine. Save makes it persistent; Cancel discards it. Owned lists
-nearby props. Nearest/Facing starts an edit immediately. Cancel before Delete.
-Go home travels to your camp. Mark Public to permit visits when the server allows
-them. Camps lists accessible camps; select a camp and Visit. Break requires two
-clicks within 15 seconds and deletes its props; stand near the loaded camp first.
+### 1. Master Controls & Module Initialization
+| Key | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `Camps.Enable` | Boolean | `1` | Master enable switch for the module. When enabled (`1`), database tables are verified, saved camps/props are loaded, and the `.camp` command interface is registered. |
 
-GM: SEC_DEVELOPER or higher defaults to GM mode. Place on a supported outdoor map
-without claiming a camp. GM edits are still limited to module-owned decorative
-spawns within 60 yards. The module does not edit arbitrary native world content.
-GM/Camp switches mode and cancels an active preview. Camp mode uses ordinary rules.
+### 2. Player Permissions & Feature Switches
+| Key | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `Camps.Players` | Boolean | `1` | Enables personal campsite claiming and prop placement for regular non-GM players (`1` = All players, `0` = GM-only mode). |
+| `Camps.Visits` | Boolean | `1` | Enables public camp visitation and player fast-travel via `.camp visit` (`1` = Enabled, `0` = Disabled). |
 
-The buttons use private self-whisper `.camp` commands and tagged private system
-replies. There is no public broadcast. Target `PlayerCommands` must allow normal
-player commands. The addon sends at most one request every 0.8 seconds and waits
-for each response. This is a conservative button editor, not smooth 3D dragging.
+### 3. Camp Boundaries, Density & Spacing Restrictions
+| Key | Type | Default | Allowed Range | Description |
+| :--- | :---: | :---: | :---: | :--- |
+| `Camps.PropCap` | Integer | `100` | `1 – 500` | Maximum number of placed scenery props, creatures, and items allowed per account campsite. |
+| `Camps.Radius` | Float | `40` | `5 – 100 yds` | Default personal campsite territory boundary radius in yards. |
+| `Camps.MinimumSpacing` | Float | `100` | `10 – 1000 yds` | Minimum horizontal spacing required between separate player camps (must be `>= 2 * Camps.Radius`). |
 
-## Commands and diagnostics
-Use the UI normally. Raw diagnostics (each request ID increases):
+### 4. Preview Timeouts & Travel Mechanics
+| Key | Type | Default | Allowed Range | Description |
+| :--- | :---: | :---: | :---: | :--- |
+| `Camps.EditTimeoutSeconds` | Integer | `120` | `15 – 600 s` | Idle timeout for active 3D preview/editing sessions before reverting uncommitted placements. |
+| `Camps.TravelCooldownSeconds` | Integer | `60` | `15 – 3600 s` | Shared cooldown timer for `.camp go` (return home) and `.camp visit` (visit public camp) actions per character. |
+
+### 5. Game Master (GM) World Builder Controls
+| Key | Type | Default | Allowed Range | Description |
+| :--- | :---: | :---: | :---: | :--- |
+| `Camps.GMSecurityLevel` | Integer | `2` | `1 – 4` | Minimum account security rank required for unrestricted GM World Builder mode (`1` = Observer, `2` = Moderator, `3` = Developer, `4` = Administrator). |
+
+### 6. Geographic & Location Blacklists
+| Key | Type | Default | Constraints | Description |
+| :--- | :---: | :---: | :---: | :--- |
+| `Camps.ForbiddenMaps` | String | `""` | Max 64 IDs | Comma-separated list of native Map IDs where player camp placement is disallowed. Note: Ordinary player camps are already restricted to outdoor maps 0 (Eastern Kingdoms) and 1 (Kalimdor). |
+| `Camps.ForbiddenZones` | String | `""` | Max 64 IDs | Comma-separated list of Zone IDs where player camps are forbidden (e.g. major capital cities, battlegrounds, or quest hubs). |
+| `Camps.ForbiddenAreas` | String | `""` | Max 64 IDs | Comma-separated list of sub-Area IDs where player camps are forbidden. |
+
+> [!NOTE]
+> Each forbidden ID list is limited to 64 entries (maximum 512 bytes). A malformed list will safely disable the module on startup. Restrictions apply to proposed prop coordinates and travel destinations. GM mode bypasses personal camp location restrictions.
+
+### 7. Database Integrity & Storage Engine Policy
+| Key | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `Camps.RequireInnoDB` | Boolean | `0` | Enforces strict InnoDB storage engine on native gameobject tables (`gameobject`, `game_event_gameobject`, `gameobject_battleground`, `camps_camp`, `camps_prop`). When `0` (default), non-InnoDB/MyISAM tables are permitted with a console warning notice. When `1`, startup is halted if any required table is non-InnoDB. |
+
+---
+
+## Addon Setup and Workflows
+
+Copy the folder `addon/TurtleCamps` directly into your client's AddOns directory:  
+`<Turtle Client>/Interface/AddOns/TurtleCamps` *(do not copy the root repository folder)*.
+
+Enable it on the character select screen. Its TOC specifies vanilla Interface `11200`. Type `/tc` or `/turtlecamps` in-game to toggle the window (negotiates wire protocol version 1).
+
+### Normal Player Workflow:
+1. Choose **Camp** mode.
+2. Stand on valid outdoor ground on Map 0 or 1.
+3. Click **Claim** to establish your camp center.
+4. Search for a prop, creature, or item in the catalogue.
+5. Select a row and click **Preview**.
+6. Use the 3D directional controls (Shift is coarse, Ctrl is fine, Alt is strafe) to adjust position, elevation, and yaw rotation.
+7. Click **Save** to make it persistent, or **Cancel** to discard.
+8. The **Owned** tab lists your active props. Nearest/Facing starts an edit immediately.
+9. **Go Home** teleports you to your camp center.
+10. Toggle **Public** to permit other players to discover and visit your camp via the **Camps** list.
+11. **Break** requires two confirmation clicks within 15 seconds to safely pack up and delete camp props.
+
+### Game Master (GM) Workflow:
+1. Accounts with security level `>= Camps.GMSecurityLevel` (default: 2 / Moderator, or Developer `SEC_DEVELOPER`) default to **GM** mode.
+2. Place props directly on any supported outdoor map without needing to claim an account camp.
+3. GM edits are restricted to module-owned decorative spawns within 60 yards (the module never edits arbitrary native world spawns).
+4. Toggle between GM and Camp mode at any time.
+
+### Network Protocol:
+The AddOn communicates through private self-whisper `.camp` commands and tagged private system replies (`TCAMP/1~...`). There is no public chat broadcast. The AddOn throttles requests to at most one per 0.8 seconds and awaits server acknowledgment.
+
+---
+
+## Commands and Diagnostics
+
+Use the in-game UI normally. Raw diagnostic wire commands (incrementing request ID):
 
 ```text
 .camp 1~1~HELLO
@@ -109,50 +141,33 @@ Use the UI normally. Raw diagnostics (each request ID increases):
 .camp 1~3~RELOAD
 ```
 
-RELOAD requires SEC_ADMINISTRATOR and reloads the manager from the **currently
-loaded** sConfig values and catalogue tables; it does not reread config files itself.
-Use the core's config reload to reread files; its hook then reloads camps. Reconnect
-the addon afterwards.
+> [!TIP]
+> `RELOAD` requires Administrator (`SEC_ADMINISTRATOR`) security and reloads the manager from the **currently loaded** `sConfig` values and database tables; it does not re-read configuration files directly. Use the core's native config reload command to reread files from disk, which automatically triggers the Camps reload hook.
 
-## Safety, limitations and troubleshooting
-Only verified generic decorative templates pass admission; overrides cannot enable
-doors, chests, spell foci, transports, scripted or quest templates. Catalogue
-categories describe appearance and never grant permission. Some visual props may
-therefore not appear.
+---
 
-No modified executable, raycast, direct world dragging, transform gizmo, personal
-phasing, arbitrary scale, bank/crafting interaction or PlayerBot gathering exists.
-Preview objects are opaque and visible to nearby players. Collision depends on
-native GameObjectModel and extracted assets; MMAP paths do not rebuild around props.
-Personal camps permit maps 0/1 only; GM mode also excludes dungeons/battlegrounds.
-Native continent partitions are supported at code level; a preview cannot move
-across a partition boundary. That runtime configuration remains untested. Normal
-camp policy has configurable forbidden zones/areas but no automatic city/water blacklist.
+## Safety, Limitations and Troubleshooting
 
-- No reply: reconnect; check module discovery/config, PlayerCommands and server logs.
-- Disabled: check schema version, InnoDB prerequisite, startup count/mismatch errors.
-- Empty catalogue: inspect templates/overrides; do not weaken safety to get results.
-- Rejected placement: check mode, account camp, cap, radius, distance and combat/map.
-- Break rejected: load all props by standing centrally; resolve other editors first.
-- Database failure: building latches off until restart. Review read-only diagnostics,
-  repair deliberately, then restart through your normal operator process.
-- Deleted undo needs a world tick to drain native removal before GUID reuse.
-- Native GM commands/SQL editing these spawns externally can invalidate module state;
-  coordinate maintenance and reload after deliberate native changes.
+- **Safe Catalog Verification**: Only verified generic decorative templates pass admission; overrides cannot enable doors, chests, spell foci, transports, scripted, or quest templates.
+- **Collision & Movement**: Preview objects are visible to nearby players. Collision depends on native `GameObjectModel` and server extracted assets. MMAP paths do not dynamically rebuild around decorative props.
+- **Geographic Scope**: Personal camps permit Maps 0 and 1 only; GM mode additionally excludes dungeons and battlegrounds.
+- **Troubleshooting Checklist**:
+  - *No reply*: Verify client AddOn is enabled, check `.camp` permission in `PlayerCommands`, and inspect server console logs.
+  - *Disabled on startup*: Check schema version (`camps_schema`), table engines, and coordinate bounds.
+  - *Empty catalogue*: Inspect `camps_catalog_override` table; ensure valid templates exist in `gameobject_template` and `creature_template`.
+  - *Rejected placement*: Verify distance to camp center (`Camps.Radius`), total placed props (`Camps.PropCap`), combat state, or minimum spacing between neighboring camps (`Camps.MinimumSpacing`).
+  - *Break rejected*: Stand centrally so all camp props are loaded in memory before attempting to break.
+  - *Database failure*: If a database error occurs, building latches off until realm restart to prevent state corruption. Review read-only diagnostics in `tools/diagnostics.sql`.
 
-## Upgrade and removal
-Back up world DB/config/SavedVariables, cancel editors, update module and addon
-together, rebuild/link, review/apply forward migrations and restart through normal
-operations. Protocol version mismatches fail; no silent downgrade exists.
+---
 
-For uninstall, first decide whether to retain persistent scenery. Break personal
-camps and delete GM props while the module is enabled if removal is desired.
-Disabling/removing the module alone leaves native spawns intact. Do not drop
-ownership tables before accounting for every native spawn. Remove the addon and
-SavedVariables only after preserving desired favorites. No automatic purge script
-is supplied.
+## Upgrade and Removal
 
-## Credits and license
-Original implementation follows the target's GPL native API patterns. Camp concepts
-reference WOW Legends; browsing/authoring concepts reference MangosSuperUI; editor
-state concepts reference MSUIClient. No AGPL server code is copied. See LICENSE.
+- **Upgrade**: Back up your database, config, and `SavedVariables`. Update the server module and client AddOn together, rebuild `mangosd`, review any new SQL migrations, and restart the server.
+- **Removal**: If you wish to remove player scenery before uninstallation, break personal camps and delete GM props while the module is still running. Disabling or removing the module alone leaves placed native spawns in the database intact. Do not drop module tables before accounting for placed spawns.
+
+---
+
+## Credits and License
+
+Original implementation follows Turtle WoW GPL native API patterns. Camp concepts reference WOW Legends; browsing and authoring concepts reference MangosSuperUI; editor state concepts reference MSUIClient. No AGPL server code is copied. See [LICENSE](LICENSE) for details.
