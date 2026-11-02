@@ -44,9 +44,20 @@ No installation/deployment or live SQL application is performed by this reposito
 ## Database and Configuration
 
 1. **Database Backup**: Back up your `world` database. Review native table engines and the optional manual `tools/prepare-transactional-tables.sql`. Apply engine changes only in an operator maintenance window. They are deliberately outside the automatic updater path.
-2. **SQL Migrations**: Apply `data/sql/world/20260911_01_camps.sql` and `data/sql/world/20260912_01_camps_radius.sql` to the **world** database, either manually or through your updater's module allowlist. No auth or character database migration is required.
+2. **Initial Database Setup**: Apply only `data/sql/world/20260911_01_camps.sql` to the **world** database, either manually or through your updater's module allowlist. This complete initial schema already includes `camps_camp.radius` and seeds the curated catalogue. No separate radius patch, core edits, or auth/character database changes are required. Startup also creates any missing module tables with the same columns, but does not seed the curated catalogue; use the initial SQL for the standard installation.
 3. **Deploy Configuration**: Copy `conf/mod-twow-camps.conf.dist` beside your server's other module configuration files as `mod-twow-camps.conf` (without `.dist`), retaining the `[ModuleConf]` section header.
 4. **Enabled Out-of-the-Box**: By default, the module is enabled (`Camps.Enable = 1`) with personal player camping (`Camps.Players = 1`) and public campsite visitation (`Camps.Visits = 1`) active immediately.
+
+### MySQL / MariaDB compatibility and existing installations
+
+The initial schema uses `CREATE TABLE IF NOT EXISTS`, with `radius FLOAT NOT NULL DEFAULT 40` defined directly in `camps_camp`. Startup and configuration reloads do not run `ALTER TABLE`. Repeated starts preserve existing tables and camp data.
+
+The former `20260912_01_camps_radius.sql` migration has been removed because its `ADD COLUMN IF NOT EXISTS` syntax is unsupported by MySQL. Update the module checkout and any separately copied updater SQL directory so that this obsolete file is no longer queued. Rebuild and deploy `mangosd` as well: updating SQL alone does not remove the old statement from an existing executable.
+
+Before loading saved camps, the module checks all required module-table columns and the schema version. If columns are missing or cannot be verified, Camps remains disabled and logs a module-specific error rather than attempting an automatic database alteration. Check that the configured world database is correct and the server account has the required database permissions.
+
+`CREATE TABLE IF NOT EXISTS` does not modify an older table that already exists. A legacy database without `radius` requires a separately reviewed upgrade to preserve its data; it cannot be repaired by reimporting the initial SQL. Do not drop module tables or reset the database to bypass validation: existing placed native spawns depend on their ownership records.
+
 
 ---
 

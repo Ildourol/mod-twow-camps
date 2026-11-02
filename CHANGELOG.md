@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- Fix MySQL startup error 1064 by removing the redundant runtime `ADD COLUMN IF NOT EXISTS` statement and obsolete radius migration.
+- Use the complete initial schema, which already defines `camps_camp.radius`, without core patches or automatic table alterations.
+- Validate required module columns before loading saved data; disable Camps clearly on an incompatible schema while preserving existing data.
+- Document the single-file initial installation and deployment requirements for replacing an older executable or copied SQL directory.
+
 ## 0.3.0 — 2026-09-12
 Zero-touch auto-connection, instant catalog, thematic quick-chips, and camp social sharing:
 - Eliminated manual "Connect" button and "Server unavailable. Press Connect." prompts.

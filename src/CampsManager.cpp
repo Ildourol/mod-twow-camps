@@ -212,6 +212,20 @@ void Manager::Load()
     WorldDatabase.DirectExecute("CREATE TABLE IF NOT EXISTS camps_camp (account INT UNSIGNED NOT NULL PRIMARY KEY, map INT UNSIGNED NOT NULL, x FLOAT NOT NULL, y FLOAT NOT NULL, z FLOAT NOT NULL, o FLOAT NOT NULL, public_visit TINYINT UNSIGNED NOT NULL DEFAULT 0, radius FLOAT NOT NULL DEFAULT 40) ENGINE=InnoDB");
     WorldDatabase.DirectExecute("CREATE TABLE IF NOT EXISTS camps_prop (guid INT UNSIGNED NOT NULL PRIMARY KEY, account INT UNSIGNED NOT NULL, camp INT UNSIGNED NOT NULL DEFAULT 0, entry INT UNSIGNED NOT NULL, KEY owner_index (account), KEY camp_index (camp)) ENGINE=InnoDB");
     WorldDatabase.DirectExecute("CREATE TABLE IF NOT EXISTS camps_catalog_override (entry INT UNSIGNED NOT NULL PRIMARY KEY, enabled TINYINT UNSIGNED NOT NULL DEFAULT 1, player_allowed TINYINT UNSIGNED NOT NULL DEFAULT 0, category VARCHAR(32) NOT NULL DEFAULT '', notes VARCHAR(255) NOT NULL DEFAULT '') ENGINE=InnoDB");
+    // Fresh installs create the complete schema above. Never ALTER existing tables
+    // during startup/reload: MySQL does not support ADD COLUMN IF NOT EXISTS.
+    // Count every column used by the module before issuing any data queries.
+    std::unique_ptr<QueryResult> columns(WorldDatabase.Query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ("
+        "(TABLE_NAME='camps_schema' AND COLUMN_NAME IN ('id','version')) OR "
+        "(TABLE_NAME='camps_camp' AND COLUMN_NAME IN ('account','map','x','y','z','o','public_visit','radius')) OR "
+        "(TABLE_NAME='camps_prop' AND COLUMN_NAME IN ('guid','account','camp','entry')) OR "
+        "(TABLE_NAME='camps_catalog_override' AND COLUMN_NAME IN ('entry','enabled','player_allowed','category','notes')))"));
+    if (!columns || columns->Fetch()[0].GetUInt32() != 19)
+    {
+        sLog.outError("[camps] Required world database columns are missing or could not be verified (including camps_camp.radius). Disabled; existing camp data is preserved. See README.md: Database and Configuration.");
+        return;
+    }
     std::unique_ptr<QueryResult> schema(WorldDatabase.Query("SELECT version FROM camps_schema WHERE id=1"));
     if (!schema || schema->Fetch()[0].GetUInt32() != 1) { sLog.outError("[camps] Missing/incompatible schema; disabled."); return; }
     std::unique_ptr<QueryResult> engines(WorldDatabase.Query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('gameobject','game_event_gameobject','gameobject_battleground','camps_camp','camps_prop') AND engine='InnoDB'"));
@@ -228,7 +242,6 @@ void Manager::Load()
     camps.clear(); props.clear(); overrides.clear();
     std::unique_ptr<QueryResult> counts(WorldDatabase.Query("SELECT (SELECT COUNT(*) FROM camps_camp), (SELECT COUNT(*) FROM camps_prop), (SELECT COUNT(*) FROM camps_catalog_override)"));
     if (!counts || counts->Fetch()[0].GetUInt32() > 2000 || counts->Fetch()[1].GetUInt32() > 10000 || counts->Fetch()[2].GetUInt32()>20000) return;
-    WorldDatabase.DirectExecute("ALTER TABLE camps_camp ADD COLUMN IF NOT EXISTS radius FLOAT NOT NULL DEFAULT 40");
     std::unique_ptr<QueryResult> rows(WorldDatabase.Query("SELECT account,map,x,y,z,o,public_visit,radius FROM camps_camp ORDER BY account LIMIT 2000"));
     if (rows) do
     {
